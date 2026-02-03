@@ -1,16 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700;800&family=Roboto:wght@300;400;500;700&family=Poppins:wght@300;400;500;600;700&family=Lora:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&family=Crimson+Text:wght@400;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
-  --font-display: 'Bricolage Grotesque', sans-serif;
-  --font-body: 'Inter', sans-serif;
-  --font-accent: 'Space Grotesk', sans-serif;
+  --font-inter: 'Inter', sans-serif;
+  --font-playfair: 'Playfair Display', serif;
+  --font-roboto: 'Roboto', sans-serif;
+  --font-poppins: 'Poppins', sans-serif;
+  --font-lora: 'Lora', serif;
+  --font-montserrat: 'Montserrat', sans-serif;
+  --font-crimson: 'Crimson Text', serif;
 }
 
 body {
-  font-family: var(--font-body);
+  font-family: var(--font-inter);
   font-feature-settings: 'ss01' on, 'ss02' on;
 }
+
+.font-inter { font-family: var(--font-inter); }
+.font-playfair { font-family: var(--font-playfair); }
+.font-roboto { font-family: var(--font-roboto); }
+.font-poppins { font-family: var(--font-poppins); }
+.font-lora { font-family: var(--font-lora); }
+.font-montserrat { font-family: var(--font-montserrat); }
+.font-crimson { font-family: var(--font-crimson); }
 
 /* Premium animations */
 @keyframes slideIn {
@@ -328,4 +340,20 @@ textarea:focus {
 
 .floating-btn {
   animation: floatingBtn 3s ease-in-out infinite;
+}
+
+/* Dropdown animation */
+@keyframes dropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-menu {
+  animation: dropdownSlide 0.2s ease;
 }
