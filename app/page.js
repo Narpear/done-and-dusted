@@ -425,7 +425,7 @@ export default function TodoApp() {
                                         ? 'text-gray-200 hover:bg-gray-700/60'
                                         : 'text-gray-800 hover:bg-gray-50'
                                   } ${i < arr.length - 1 ? (isDarkTheme ? 'border-b border-gray-700/50' : 'border-b border-gray-100') : ''}`}
-                                  style={{ fontFamily: `var(--font-${key})` }}
+                                  style={{ fontFamily: f.family }}
                                 >
                                   <span>{f.name}</span>
                                   {font === key && (

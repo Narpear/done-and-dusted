@@ -89,21 +89,21 @@ export const THEMES = {
 
 export const FONTS = {
   // ── Sans-serif ───────────────────────────────────────────────────────────────
-  inter: { name: 'Inter', class: 'font-inter' },
-  roboto: { name: 'Roboto', class: 'font-roboto' },
-  poppins: { name: 'Poppins', class: 'font-poppins' },
-  montserrat: { name: 'Montserrat', class: 'font-montserrat' },
-  'space-grotesk': { name: 'Space Grotesk', class: 'font-space-grotesk' },
-  syne: { name: 'Syne', class: 'font-syne' },
-  unbounded: { name: 'Unbounded', class: 'font-unbounded' },
+  inter:           { name: 'Inter',              class: 'font-inter',         family: "'Inter', sans-serif" },
+  roboto:          { name: 'Roboto',             class: 'font-roboto',        family: "'Roboto', sans-serif" },
+  poppins:         { name: 'Poppins',            class: 'font-poppins',       family: "'Poppins', sans-serif" },
+  montserrat:      { name: 'Montserrat',         class: 'font-montserrat',    family: "'Montserrat', sans-serif" },
+  'space-grotesk': { name: 'Space Grotesk',      class: 'font-space-grotesk', family: "'Space Grotesk', sans-serif" },
+  syne:            { name: 'Syne',               class: 'font-syne',          family: "'Syne', sans-serif" },
+  unbounded:       { name: 'Unbounded',          class: 'font-unbounded',     family: "'Unbounded', sans-serif" },
   // ── Serif ────────────────────────────────────────────────────────────────────
-  playfair: { name: 'Playfair Display', class: 'font-playfair' },
-  lora: { name: 'Lora', class: 'font-lora' },
-  crimson: { name: 'Crimson Text', class: 'font-crimson' },
-  cormorant: { name: 'Cormorant Garamond', class: 'font-cormorant' },
-  'dm-serif': { name: 'DM Serif Display', class: 'font-dm-serif' },
-  fraunces: { name: 'Fraunces', class: 'font-fraunces' },
-  baskerville: { name: 'Libre Baskerville', class: 'font-baskerville' },
+  playfair:        { name: 'Playfair Display',   class: 'font-playfair',      family: "'Playfair Display', serif" },
+  lora:            { name: 'Lora',               class: 'font-lora',          family: "'Lora', serif" },
+  crimson:         { name: 'Crimson Text',       class: 'font-crimson',       family: "'Crimson Text', serif" },
+  cormorant:       { name: 'Cormorant Garamond', class: 'font-cormorant',     family: "'Cormorant Garamond', serif" },
+  'dm-serif':      { name: 'DM Serif Display',   class: 'font-dm-serif',      family: "'DM Serif Display', serif" },
+  fraunces:        { name: 'Fraunces',           class: 'font-fraunces',      family: "'Fraunces', serif" },
+  baskerville:     { name: 'Libre Baskerville',  class: 'font-baskerville',   family: "'Libre Baskerville', serif" },
 };
 
 export const PRIORITY_STYLES = {
