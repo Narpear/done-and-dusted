@@ -6,7 +6,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-
 import { arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { PRIORITY_STYLES } from '../lib/constants';
-import { calcProgressPct, getDueDateLabel, launchConfetti } from '../lib/utils';
+import { calcProgressPct, getDueDateLabel, launchConfetti, getTagColorClass } from '../lib/utils';
 import ProgressBar from './ProgressBar';
 import SubtaskItem from './SubtaskItem';
 
@@ -23,6 +23,10 @@ export default function TodoItem({
   mode,
   isDarkTheme,
   confettiCanvasRef,
+  isSelected,
+  onSelect,
+  isBulkMode,
+  canDrag,
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
@@ -40,6 +44,20 @@ export default function TodoItem({
   const pct = calcProgressPct(todo);
   const hasSubtasks = todo.subtasks && todo.subtasks.length > 0;
   const dueInfo = getDueDateLabel(todo.dueDate);
+  const tagColorClass = getTagColorClass(todo.tag);
+
+  // Due-date driven card styling — overrides priority when overdue/today
+  const cardBorder = dueInfo?.overdue
+    ? 'border-l-rose-500'
+    : dueInfo?.today
+    ? 'border-l-amber-500'
+    : mode === 'basic' ? 'border-l-transparent' : pStyle.border;
+
+  const cardBg = dueInfo?.overdue
+    ? 'bg-linear-to-r from-rose-50/60 to-transparent dark:from-rose-950/30'
+    : dueInfo?.today
+    ? 'bg-linear-to-r from-amber-50/40 to-transparent dark:from-amber-950/20'
+    : mode === 'basic' ? '' : pStyle.bg;
 
   // Fire confetti when a task reaches 100%
   useEffect(() => {
@@ -78,21 +96,42 @@ export default function TodoItem({
   return (
     <div ref={setNodeRef} style={style}>
       <div
-        className={`group relative card-hover glass rounded-xl border-l-4 ${
-          mode === 'basic' ? 'border-l-transparent' : pStyle.border
-        } ${pStyle.bg} shadow-md ${isDragging ? 'opacity-50 scale-105 z-50 shadow-2xl' : ''} ${
-          todo.completed ? 'opacity-60' : ''
+        className={`group relative card-hover glass rounded-xl border-l-4 ${cardBorder} ${cardBg} shadow-md ${
+          isDragging ? 'opacity-50 scale-105 z-50 shadow-2xl' : ''
+        } ${todo.completed ? 'opacity-60' : ''} ${
+          isSelected ? (isDarkTheme ? 'ring-2 ring-blue-400' : 'ring-2 ring-blue-500') : ''
         }`}
       >
         <div className="flex items-start gap-3 p-4 sm:p-5">
-          {/* Drag handle */}
-          <button
-            {...attributes}
-            {...listeners}
-            className="drag-handle flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-400 cursor-grab active:cursor-grabbing mt-1"
-          >
-            <DragDots />
-          </button>
+          {/* Bulk select checkbox OR drag handle */}
+          {isBulkMode ? (
+            <button
+              onClick={() => onSelect(todo.id)}
+              className="flex-shrink-0 mt-1"
+            >
+              <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                isSelected
+                  ? 'bg-blue-500 border-blue-500'
+                  : isDarkTheme ? 'border-gray-500' : 'border-gray-300'
+              }`}>
+                {isSelected && (
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5">
+                    <path d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+            </button>
+          ) : canDrag ? (
+            <button
+              {...attributes}
+              {...listeners}
+              className="drag-handle flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-400 cursor-grab active:cursor-grabbing mt-1"
+            >
+              <DragDots />
+            </button>
+          ) : (
+            <div className="w-4 flex-shrink-0" />
+          )}
 
           {/* Expand arrow */}
           {hasSubtasks && (
@@ -146,7 +185,6 @@ export default function TodoItem({
                 }}
               >
                 {todo.text}
-                {/* Inline progress % when has subtasks */}
                 {hasSubtasks && (
                   <span className={`ml-2 text-xs font-medium ${
                     pct === 100 ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'
@@ -167,8 +205,9 @@ export default function TodoItem({
             )}
 
             {/* Badges row */}
-            {mode === 'advanced' && !isEditing && (
+            {!isEditing && (
               <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                {/* Due date — always shown when present */}
                 {dueInfo && (
                   <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${
                     dueInfo.overdue
@@ -183,14 +222,31 @@ export default function TodoItem({
                     {dueInfo.label}
                   </span>
                 )}
-                <span className={`priority-badge inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${pStyle.badge}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${pStyle.dot} animate-pulse`} />
-                  <span className="capitalize">{todo.priority}</span>
-                </span>
-                {todo.tag && (
-                  <span className="priority-badge text-xs font-medium px-2.5 py-1 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300">
-                    #{todo.tag}
+
+                {/* Recurring badge */}
+                {todo.recurrence && (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-300">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M1 4v6h6M23 20v-6h-6"/>
+                      <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                    </svg>
+                    {todo.recurrence}
                   </span>
+                )}
+
+                {/* Priority + tag — advanced mode only */}
+                {mode === 'advanced' && (
+                  <>
+                    <span className={`priority-badge inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${pStyle.badge}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${pStyle.dot} animate-pulse`} />
+                      <span className="capitalize">{todo.priority}</span>
+                    </span>
+                    {todo.tag && (
+                      <span className={`priority-badge text-xs font-medium px-2.5 py-1 rounded-full ${tagColorClass}`}>
+                        #{todo.tag}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
             )}

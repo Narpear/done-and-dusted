@@ -27,10 +27,18 @@ export default function TodoApp() {
   const [selectedTag, setSelectedTag] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Bulk selection
+  const [isBulkMode, setIsBulkMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [isMoveOpen, setIsMoveOpen] = useState(false);
+
   const {
     lists, currentListId, setCurrentListId,
     todos, theme, setTheme, font, setFont, mode, setMode, layout, setLayout,
+    sortBy, setSortBy,
+    deletedTodo, undoDelete, dismissUndo,
     addTodo, toggleTodo, deleteTodo, editTodo, updateTodoNotes,
+    bulkDelete, bulkComplete, moveTodosToList,
     addSubtask, toggleSubtask, deleteSubtask, editSubtask,
     handleDragEnd,
     addList, deleteList, editList,
@@ -47,7 +55,13 @@ export default function TodoApp() {
   useKeyboardShortcuts({
     inputRef: todoInputRef,
     searchRef,
-    onEscape: () => { setSearchQuery(''); setIsSettingsOpen(false); setIsExportOpen(false); setIsShortcutsOpen(false); },
+    onEscape: () => {
+      setSearchQuery('');
+      setIsSettingsOpen(false);
+      setIsExportOpen(false);
+      setIsShortcutsOpen(false);
+      clearSelection();
+    },
     onToggleHelp: () => setIsShortcutsOpen((o) => !o),
   });
 
@@ -56,7 +70,58 @@ export default function TodoApp() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  // Derived filter state
+  // ── Bulk helpers ──────────────────────────────────────────────────────────
+  function toggleSelect(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+    setIsBulkMode(false);
+    setIsMoveOpen(false);
+  }
+
+  function handleBulkDelete() {
+    bulkDelete(selectedIds);
+    clearSelection();
+  }
+
+  function handleBulkComplete() {
+    bulkComplete(selectedIds);
+    clearSelection();
+  }
+
+  function handleMoveTo(targetListId) {
+    moveTodosToList(selectedIds, targetListId);
+    clearSelection();
+  }
+
+  // ── Sort ──────────────────────────────────────────────────────────────────
+  function applySortTo(todos) {
+    if (sortBy === 'manual') return todos;
+    return [...todos].sort((a, b) => {
+      if (sortBy === 'priority') {
+        const order = { high: 0, medium: 1, low: 2 };
+        return (order[a.priority] ?? 1) - (order[b.priority] ?? 1);
+      }
+      if (sortBy === 'dueDate') {
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return new Date(a.dueDate) - new Date(b.dueDate);
+      }
+      if (sortBy === 'createdAt') {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      }
+      return 0;
+    });
+  }
+
+  // ── Derived filter + sort state ────────────────────────────────────────────
   const allTags = ['all', ...new Set(todos.filter((t) => t.tag).map((t) => t.tag))];
 
   const filteredTodos = todos.filter((t) => {
@@ -68,7 +133,7 @@ export default function TodoApp() {
     return tagMatch && searchMatch;
   });
 
-  const activeTodos = filteredTodos.filter((t) => !t.completed);
+  const activeTodos = applySortTo(filteredTodos.filter((t) => !t.completed));
   const completedTodos = filteredTodos.filter((t) => t.completed);
 
   const stats = {
@@ -78,9 +143,11 @@ export default function TodoApp() {
     completion: filteredTodos.length ? Math.round((completedTodos.length / filteredTodos.length) * 100) : 0,
   };
 
-  // Grid columns from active todos only
   const columns = [[], [], []];
   activeTodos.forEach((todo, i) => columns[i % 3].push(todo));
+
+  const canDrag = sortBy === 'manual';
+  const otherLists = lists.filter((l) => l.id !== currentListId);
 
   // ── Export helpers ──────────────────────────────────────────────────────────
   function renderSubtasksText(subtasks, level = 0) {
@@ -168,7 +235,17 @@ export default function TodoApp() {
     mode,
     isDarkTheme,
     confettiCanvasRef,
+    isBulkMode,
+    onSelect: toggleSelect,
+    canDrag,
   };
+
+  const SORT_OPTIONS = [
+    { key: 'manual', label: 'Manual' },
+    { key: 'priority', label: 'Priority' },
+    { key: 'dueDate', label: 'Due Date' },
+    { key: 'createdAt', label: 'Newest' },
+  ];
 
   return (
     <div className={`min-h-screen ${currentTheme.bg} ${currentFont.class} transition-all duration-500 flex`}>
@@ -235,25 +312,6 @@ export default function TodoApp() {
         </div>
       </div>
 
-      {/* Sidebar toggle */}
-      <button
-        onClick={() => setIsSidebarOpen((o) => !o)}
-        className={`fixed top-6 z-30 glass rounded-xl p-3 shadow-lg hover:shadow-xl transition-all ${
-          isSidebarOpen ? 'left-[19.5rem]' : 'left-4'
-        } ${isDarkTheme ? 'bg-gray-800/90' : 'bg-white/90'}`}
-        title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-          className={isDarkTheme ? 'text-gray-200' : 'text-gray-700'}
-        >
-          {isSidebarOpen ? (
-            <><path d="M9 18l-6-6 6-6" /><line x1="21" y1="12" x2="3" y2="12" /></>
-          ) : (
-            <><rect x="3" y="4" width="18" height="3" rx="1" /><rect x="3" y="10" width="18" height="3" rx="1" /><rect x="3" y="16" width="18" height="3" rx="1" /></>
-          )}
-        </svg>
-      </button>
-
       {/* Main content */}
       <div className="flex-1 overflow-auto">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -270,33 +328,32 @@ export default function TodoApp() {
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Mode toggle */}
-                <div className="glass rounded-xl p-1.5 shadow-lg">
-                  {['basic', 'advanced'].map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => setMode(m)}
-                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all capitalize ${
-                        mode === m
-                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
-                          : isDarkTheme ? 'text-gray-300 hover:bg-gray-800/50' : 'text-gray-700 hover:bg-white/50'
-                      }`}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex items-center gap-2">
+                {/* Sidebar toggle */}
+                <button
+                  onClick={() => setIsSidebarOpen((o) => !o)}
+                  className={`glass rounded-xl p-2.5 shadow-lg hover:shadow-xl transition-all ${isDarkTheme ? 'bg-gray-800/90' : 'bg-white/90'}`}
+                  title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                    className={isDarkTheme ? 'text-gray-200' : 'text-gray-700'}>
+                    {isSidebarOpen ? (
+                      <><path d="M9 18l-6-6 6-6" /><line x1="21" y1="12" x2="3" y2="12" /></>
+                    ) : (
+                      <><rect x="3" y="4" width="18" height="3" rx="1" /><rect x="3" y="10" width="18" height="3" rx="1" /><rect x="3" y="16" width="18" height="3" rx="1" /></>
+                    )}
+                  </svg>
+                </button>
 
                 {/* Layout toggle */}
                 <div className="glass rounded-xl p-1.5 shadow-lg">
-                  <button onClick={() => setLayout('grid')} className={layoutBtnClass(layout === 'grid', isDarkTheme)} title="Grid">
+                  <button onClick={() => setLayout('grid')} className={layoutBtnClass(layout === 'grid', isDarkTheme)} title="Grid view">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                       <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
                       <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
                     </svg>
                   </button>
-                  <button onClick={() => setLayout('list')} className={layoutBtnClass(layout === 'list', isDarkTheme)} title="List">
+                  <button onClick={() => setLayout('list')} className={layoutBtnClass(layout === 'list', isDarkTheme)} title="List view">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                       <rect x="3" y="4" width="18" height="3" rx="1" /><rect x="3" y="10" width="18" height="3" rx="1" />
                       <rect x="3" y="16" width="18" height="3" rx="1" />
@@ -304,35 +361,23 @@ export default function TodoApp() {
                   </button>
                 </div>
 
-                {/* Shortcuts help */}
-                <button
-                  onClick={() => setIsShortcutsOpen(true)}
-                  className="glass rounded-xl px-3 py-2.5 shadow-lg hover:shadow-xl transition-all"
-                  title="Keyboard shortcuts (?)"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                    className={isDarkTheme ? 'text-gray-200' : 'text-gray-700'}>
-                    <rect x="2" y="7" width="20" height="14" rx="2" />
-                    <path d="M6 11h.01M10 11h.01M14 11h.01M18 11h.01M8 15h8" strokeLinecap="round" />
-                  </svg>
-                </button>
-
                 {/* Export */}
                 <div className="relative">
                   <button
                     onClick={() => setIsExportOpen((o) => !o)}
-                    className="glass rounded-xl px-4 py-2.5 shadow-lg flex items-center gap-2 hover:shadow-xl transition-all"
+                    className={`glass rounded-xl px-3 py-2.5 shadow-lg flex items-center gap-2 hover:shadow-xl transition-all ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                      className={isDarkTheme ? 'text-gray-200' : 'text-gray-700'}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
                     </svg>
-                    <span className={`font-semibold text-sm ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}>Export</span>
+                    <span className="font-semibold text-sm">Export</span>
                   </button>
                   {isExportOpen && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setIsExportOpen(false)} />
-                      <div className="dropdown-menu absolute right-0 mt-2 w-52 glass rounded-xl shadow-2xl z-20 border border-gray-200/50 dark:border-gray-700/50 p-2">
+                      <div className={`dropdown-menu absolute right-0 mt-2 w-52 rounded-xl shadow-2xl z-20 border p-2 ${
+                        isDarkTheme ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
+                      }`}>
                         {[
                           ['JSON', 'Data backup', exportAsJSON],
                           ['Markdown', 'Documentation', exportAsMarkdown],
@@ -340,9 +385,13 @@ export default function TodoApp() {
                           ['Copy to Clipboard', 'Quick share', copyToClipboard],
                         ].map(([label, sub, fn]) => (
                           <button key={label} onClick={() => { fn(); setIsExportOpen(false); }}
-                            className={`w-full text-left px-4 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}>
+                            className={`w-full text-left px-4 py-2.5 rounded-lg transition-colors ${
+                              isDarkTheme
+                                ? 'text-gray-200 hover:bg-gray-800'
+                                : 'text-gray-700 hover:bg-gray-50'
+                            }`}>
                             <div className="font-semibold text-sm">{label}</div>
-                            <div className="text-xs text-gray-500">{sub}</div>
+                            <div className={`text-xs ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>{sub}</div>
                           </button>
                         ))}
                       </div>
@@ -354,22 +403,43 @@ export default function TodoApp() {
                 <div className="relative">
                   <button
                     onClick={() => setIsSettingsOpen((o) => !o)}
-                    className="glass rounded-xl px-4 py-2.5 shadow-lg flex items-center gap-2 hover:shadow-xl transition-all"
+                    className={`glass rounded-xl px-3 py-2.5 shadow-lg flex items-center gap-2 hover:shadow-xl transition-all ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                      className={isDarkTheme ? 'text-gray-200' : 'text-gray-700'}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <circle cx="12" cy="12" r="3" />
                       <path d="M12 1v4m0 14v4M1 12h4m14 0h4m-3.5-7.5-2.83 2.83M7.33 16.67l-2.83 2.83M20.5 19.5l-2.83-2.83M7.33 7.33 4.5 4.5" />
                     </svg>
-                    <span className={`font-semibold text-sm ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}>Settings</span>
+                    <span className="font-semibold text-sm">Settings</span>
                   </button>
                   {isSettingsOpen && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setIsSettingsOpen(false)} />
-                      <div className="dropdown-menu absolute right-0 mt-2 w-72 glass rounded-xl shadow-2xl z-20 border border-gray-200/50 dark:border-gray-700/50 p-4">
+                      <div className="dropdown-menu absolute right-0 mt-2 w-72 glass rounded-xl shadow-2xl z-20 border border-gray-200/50 dark:border-gray-700/50 p-4 space-y-5">
+
+                        {/* Mode */}
+                        <div>
+                          <label className={`text-xs font-semibold uppercase tracking-widest mb-2 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
+                            Mode
+                          </label>
+                          <div className={`flex rounded-lg overflow-hidden border ${isDarkTheme ? 'border-gray-700' : 'border-gray-200'}`}>
+                            {['basic', 'advanced'].map((m) => (
+                              <button
+                                key={m}
+                                onClick={() => setMode(m)}
+                                className={`flex-1 py-2 text-sm font-semibold capitalize transition-colors ${
+                                  mode === m
+                                    ? 'bg-blue-500 text-white'
+                                    : isDarkTheme ? 'text-gray-300 hover:bg-gray-700/60' : 'text-gray-700 hover:bg-gray-50'
+                                }`}
+                              >
+                                {m}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
 
                         {/* Theme swatches */}
-                        <div className="mb-5">
+                        <div>
                           <label className={`text-xs font-semibold uppercase tracking-widest mb-3 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
                             Theme
                           </label>
@@ -383,11 +453,7 @@ export default function TodoApp() {
                                       ? 'ring-2 ring-offset-2 ring-blue-500 scale-110'
                                       : 'hover:scale-110 hover:brightness-90'
                                   }`}
-                                  style={{
-                                    width: 28,
-                                    height: 28,
-                                    background: t.swatchGradient,
-                                  }}
+                                  style={{ width: 28, height: 28, background: t.swatchGradient }}
                                   title={t.name}
                                 >
                                   {theme === key && (
@@ -396,7 +462,6 @@ export default function TodoApp() {
                                     </svg>
                                   )}
                                 </button>
-                                {/* Tooltip */}
                                 <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs font-medium rounded-md whitespace-nowrap opacity-0 group-hover/swatch:opacity-100 transition-opacity pointer-events-none z-30 ${
                                   isDarkTheme ? 'bg-gray-700 text-gray-100' : 'bg-gray-900 text-white'
                                 }`}>
@@ -407,37 +472,48 @@ export default function TodoApp() {
                           </div>
                         </div>
 
-                        {/* Font list — each option in its own font */}
+                        {/* Font list */}
                         <div>
                           <label className={`text-xs font-semibold uppercase tracking-widest mb-2 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
                             Font
                           </label>
                           <div className={`rounded-lg border overflow-hidden ${isDarkTheme ? 'border-gray-700' : 'border-gray-200'}`}>
-                            <div className="max-h-52 overflow-y-auto">
-                              {Object.entries(FONTS).map(([key, f], i, arr) => (
-                                <button
-                                  key={key}
-                                  onClick={() => setFont(key)}
-                                  className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between gap-2 ${
-                                    font === key
-                                      ? 'bg-blue-500 text-white'
-                                      : isDarkTheme
-                                        ? 'text-gray-200 hover:bg-gray-700/60'
-                                        : 'text-gray-800 hover:bg-gray-50'
-                                  } ${i < arr.length - 1 ? (isDarkTheme ? 'border-b border-gray-700/50' : 'border-b border-gray-100') : ''}`}
-                                  style={{ fontFamily: f.family }}
-                                >
-                                  <span>{f.name}</span>
-                                  {font === key && (
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                      <path d="M5 13l4 4L19 7" />
-                                    </svg>
-                                  )}
-                                </button>
-                              ))}
-                            </div>
+                            {Object.entries(FONTS).map(([key, f], i, arr) => (
+                              <button
+                                key={key}
+                                onClick={() => setFont(key)}
+                                className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between gap-2 ${
+                                  font === key
+                                    ? 'bg-blue-500 text-white'
+                                    : isDarkTheme ? 'text-gray-200 hover:bg-gray-700/60' : 'text-gray-800 hover:bg-gray-50'
+                                } ${i < arr.length - 1 ? (isDarkTheme ? 'border-b border-gray-700/50' : 'border-b border-gray-100') : ''}`}
+                                style={{ fontFamily: f.family }}
+                              >
+                                <span>{f.name}</span>
+                                {font === key && (
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                    <path d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </button>
+                            ))}
                           </div>
                         </div>
+
+                        {/* Keyboard shortcuts */}
+                        <button
+                          onClick={() => { setIsSettingsOpen(false); setIsShortcutsOpen(true); }}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+                            isDarkTheme ? 'text-gray-300 hover:bg-gray-700/60' : 'text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="2" y="7" width="20" height="14" rx="2" />
+                            <path d="M6 11h.01M10 11h.01M14 11h.01M18 11h.01M8 15h8" strokeLinecap="round" />
+                          </svg>
+                          Keyboard Shortcuts
+                          <span className={`ml-auto text-xs px-1.5 py-0.5 rounded font-mono ${isDarkTheme ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>?</span>
+                        </button>
 
                       </div>
                     </>
@@ -462,11 +538,52 @@ export default function TodoApp() {
           {/* Add todo form */}
           <AddTodoForm ref={todoInputRef} onAdd={addTodo} mode={mode} isDarkTheme={isDarkTheme} />
 
+          {/* Sort + bulk controls */}
+          {(activeTodos.length > 0 || completedTodos.length > 0) && (
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+              {/* Sort pills */}
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-semibold uppercase tracking-wide ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Sort
+                </span>
+                {SORT_OPTIONS.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setSortBy(key)}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                      sortBy === key
+                        ? 'bg-blue-500 text-white shadow-sm'
+                        : isDarkTheme
+                        ? 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60'
+                        : 'bg-white/70 text-gray-600 hover:bg-gray-100/80'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Select / cancel bulk mode */}
+              <button
+                onClick={() => { if (isBulkMode) clearSelection(); else setIsBulkMode(true); }}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                  isBulkMode
+                    ? 'bg-rose-500 text-white'
+                    : isDarkTheme
+                    ? 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60'
+                    : 'bg-white/70 text-gray-600 hover:bg-gray-100/80'
+                }`}
+              >
+                {isBulkMode ? 'Cancel select' : 'Select'}
+              </button>
+            </div>
+          )}
+
           {/* Empty state */}
           {activeTodos.length === 0 && completedTodos.length === 0 && (
             <div className="text-center py-20">
               <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-5 floating-btn ${
-                isDarkTheme ? 'bg-gradient-to-br from-blue-900/30 to-purple-900/30' : 'bg-gradient-to-br from-blue-100 to-purple-100'
+                isDarkTheme ? 'bg-linear-to-br from-blue-900/30 to-purple-900/30' : 'bg-linear-to-br from-blue-100 to-purple-100'
               }`}>
                 <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600 dark:text-blue-400">
                   <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
@@ -483,14 +600,23 @@ export default function TodoApp() {
 
           {/* Active todos */}
           {activeTodos.length > 0 && (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <DndContext
+              sensors={canDrag ? sensors : []}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
               {layout === 'grid' ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                   {columns.map((colTodos, colIdx) => (
                     <SortableContext key={colIdx} items={colTodos.map((t) => t.id)} strategy={rectSortingStrategy}>
                       <div className="space-y-3">
                         {colTodos.map((todo) => (
-                          <TodoItem key={todo.id} todo={todo} {...todoItemProps} />
+                          <TodoItem
+                            key={todo.id}
+                            todo={todo}
+                            {...todoItemProps}
+                            isSelected={selectedIds.has(todo.id)}
+                          />
                         ))}
                       </div>
                     </SortableContext>
@@ -500,7 +626,12 @@ export default function TodoApp() {
                 <SortableContext items={activeTodos.map((t) => t.id)} strategy={verticalListSortingStrategy}>
                   <div className="space-y-3 max-w-3xl mx-auto">
                     {activeTodos.map((todo) => (
-                      <TodoItem key={todo.id} todo={todo} {...todoItemProps} />
+                      <TodoItem
+                        key={todo.id}
+                        todo={todo}
+                        {...todoItemProps}
+                        isSelected={selectedIds.has(todo.id)}
+                      />
                     ))}
                   </div>
                 </SortableContext>
@@ -508,14 +639,94 @@ export default function TodoApp() {
             </DndContext>
           )}
 
-          {/* Completed tasks - collapsed section */}
+          {/* Completed tasks */}
           <CompletedSection
             todos={completedTodos}
             {...todoItemProps}
+            isBulkMode={false}
           />
 
         </div>
       </div>
+
+      {/* ── Bulk action toolbar ────────────────────────────────────────────── */}
+      {isBulkMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-4 py-3 glass rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50">
+          <span className={`text-sm font-semibold mr-1 ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}>
+            {selectedIds.size} selected
+          </span>
+          <button
+            onClick={handleBulkComplete}
+            className="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-colors"
+          >
+            Complete
+          </button>
+          <button
+            onClick={handleBulkDelete}
+            className="px-3 py-1.5 bg-rose-600 text-white text-xs font-bold rounded-lg hover:bg-rose-700 transition-colors"
+          >
+            Delete
+          </button>
+          {otherLists.length > 0 && (
+            <div className="relative">
+              <button
+                onClick={() => setIsMoveOpen((o) => !o)}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center gap-1 ${
+                  isDarkTheme ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Move to
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              {isMoveOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsMoveOpen(false)} />
+                  <div className={`absolute bottom-full mb-2 left-0 rounded-xl shadow-2xl z-20 border overflow-hidden min-w-35 ${
+                    isDarkTheme ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+                  }`}>
+                    {otherLists.map((l) => (
+                      <button
+                        key={l.id}
+                        onClick={() => { handleMoveTo(l.id); setIsMoveOpen(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
+                          isDarkTheme ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {l.name}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Undo delete toast ──────────────────────────────────────────────── */}
+      {deletedTodo && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 glass rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50">
+          <span className={`text-sm font-medium ${isDarkTheme ? 'text-gray-200' : 'text-gray-800'}`}>
+            Task deleted
+          </span>
+          <button
+            onClick={undoDelete}
+            className="px-3 py-1 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Undo
+          </button>
+          <button
+            onClick={dismissUndo}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -523,7 +734,7 @@ export default function TodoApp() {
 function layoutBtnClass(active, isDarkTheme) {
   return `px-2.5 py-2 rounded-lg transition-all ${
     active
-      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
+      ? 'bg-linear-to-r from-blue-500 to-blue-600 text-white shadow-md'
       : isDarkTheme ? 'text-gray-300 hover:bg-gray-800/50' : 'text-gray-700 hover:bg-white/50'
   }`;
 }

@@ -2,85 +2,85 @@ export const THEMES = {
   // ── Light themes ────────────────────────────────────────────────────────────
   'rose-gold': {
     name: 'Rose Gold',
-    bg: 'bg-gradient-to-br from-rose-100 via-pink-100 to-amber-100',
+    bg: 'bg-linear-to-br from-rose-200 via-pink-200 to-amber-200',
     accent: '#be123c',
     swatchGradient: 'linear-gradient(135deg, #fb7185, #f472b6, #fbbf24)',
   },
   sage: {
     name: 'Sage',
-    bg: 'bg-gradient-to-br from-emerald-100 via-teal-100 to-cyan-100',
+    bg: 'bg-linear-to-br from-emerald-200 via-teal-200 to-cyan-200',
     accent: '#047857',
     swatchGradient: 'linear-gradient(135deg, #34d399, #2dd4bf, #22d3ee)',
   },
   lavender: {
     name: 'Lavender',
-    bg: 'bg-gradient-to-br from-purple-100 via-violet-100 to-indigo-100',
+    bg: 'bg-linear-to-br from-purple-200 via-violet-200 to-indigo-200',
     accent: '#6d28d9',
     swatchGradient: 'linear-gradient(135deg, #c084fc, #a78bfa, #818cf8)',
   },
   peach: {
     name: 'Peach',
-    bg: 'bg-gradient-to-br from-orange-100 via-amber-100 to-yellow-100',
+    bg: 'bg-linear-to-br from-orange-200 via-amber-200 to-yellow-200',
     accent: '#c2410c',
     swatchGradient: 'linear-gradient(135deg, #fb923c, #fbbf24, #facc15)',
   },
   'cotton-candy': {
     name: 'Cotton Candy',
-    bg: 'bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100',
+    bg: 'bg-linear-to-br from-pink-200 via-purple-200 to-blue-200',
     accent: '#a21caf',
     swatchGradient: 'linear-gradient(135deg, #f472b6, #e879f9, #818cf8)',
   },
   slate: {
     name: 'Slate',
-    bg: 'bg-gradient-to-br from-slate-200 via-gray-100 to-zinc-200',
+    bg: 'bg-linear-to-br from-slate-300 via-gray-200 to-zinc-300',
     accent: '#334155',
     swatchGradient: 'linear-gradient(135deg, #94a3b8, #9ca3af, #a1a1aa)',
   },
   cream: {
     name: 'Cream',
-    bg: 'bg-gradient-to-br from-amber-100 via-yellow-50 to-lime-100',
+    bg: 'bg-linear-to-br from-amber-200 via-yellow-200 to-lime-200',
     accent: '#92400e',
     swatchGradient: 'linear-gradient(135deg, #fcd34d, #fde68a, #bef264)',
   },
   // ── Dark themes ─────────────────────────────────────────────────────────────
   midnight: {
     name: 'Midnight Blue',
-    bg: 'bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900',
+    bg: 'bg-linear-to-br from-slate-950 via-blue-850 to-indigo-950',
     accent: '#1d4ed8',
     swatchGradient: 'linear-gradient(135deg, #0f172a, #1e3a8a, #312e81)',
     dark: true,
   },
   charcoal: {
     name: 'Charcoal',
-    bg: 'bg-gradient-to-br from-gray-900 via-slate-800 to-zinc-900',
+    bg: 'bg-linear-to-br from-gray-950 via-slate-800 to-zinc-950',
     accent: '#4338ca',
     swatchGradient: 'linear-gradient(135deg, #111827, #1e293b, #18181b)',
     dark: true,
   },
   forest: {
     name: 'Forest',
-    bg: 'bg-gradient-to-br from-green-900 via-emerald-900 to-teal-900',
+    bg: 'bg-linear-to-br from-green-950 via-emerald-800 to-teal-950',
     accent: '#065f46',
     swatchGradient: 'linear-gradient(135deg, #14532d, #064e3b, #134e4a)',
     dark: true,
   },
   aurora: {
     name: 'Aurora',
-    bg: 'bg-gradient-to-br from-slate-900 via-teal-900 to-emerald-900',
+    bg: 'bg-linear-to-br from-slate-950 via-teal-800 to-emerald-950',
     accent: '#0f766e',
     swatchGradient: 'linear-gradient(135deg, #0f172a, #134e4a, #064e3b)',
     dark: true,
   },
   'deep-purple': {
     name: 'Deep Purple',
-    bg: 'bg-gradient-to-br from-violet-950 via-purple-900 to-fuchsia-900',
+    bg: 'bg-linear-to-br from-violet-950 via-purple-800 to-fuchsia-950',
     accent: '#7e22ce',
     swatchGradient: 'linear-gradient(135deg, #2e1065, #581c87, #701a75)',
     dark: true,
   },
   'crimson-night': {
     name: 'Crimson Night',
-    bg: 'bg-gradient-to-br from-gray-950 via-rose-950 to-red-900',
+    bg: 'bg-linear-to-br from-gray-950 via-rose-900 to-red-950',
     accent: '#9f1239',
     swatchGradient: 'linear-gradient(135deg, #030712, #4c0519, #7f1d1d)',
     dark: true,
@@ -88,22 +88,9 @@ export const THEMES = {
 };
 
 export const FONTS = {
-  // ── Sans-serif ───────────────────────────────────────────────────────────────
-  inter:           { name: 'Inter',              class: 'font-inter',         family: "'Inter', sans-serif" },
-  roboto:          { name: 'Roboto',             class: 'font-roboto',        family: "'Roboto', sans-serif" },
-  poppins:         { name: 'Poppins',            class: 'font-poppins',       family: "'Poppins', sans-serif" },
-  montserrat:      { name: 'Montserrat',         class: 'font-montserrat',    family: "'Montserrat', sans-serif" },
-  'space-grotesk': { name: 'Space Grotesk',      class: 'font-space-grotesk', family: "'Space Grotesk', sans-serif" },
-  syne:            { name: 'Syne',               class: 'font-syne',          family: "'Syne', sans-serif" },
-  unbounded:       { name: 'Unbounded',          class: 'font-unbounded',     family: "'Unbounded', sans-serif" },
-  // ── Serif ────────────────────────────────────────────────────────────────────
-  playfair:        { name: 'Playfair Display',   class: 'font-playfair',      family: "'Playfair Display', serif" },
-  lora:            { name: 'Lora',               class: 'font-lora',          family: "'Lora', serif" },
-  crimson:         { name: 'Crimson Text',       class: 'font-crimson',       family: "'Crimson Text', serif" },
-  cormorant:       { name: 'Cormorant Garamond', class: 'font-cormorant',     family: "'Cormorant Garamond', serif" },
-  'dm-serif':      { name: 'DM Serif Display',   class: 'font-dm-serif',      family: "'DM Serif Display', serif" },
-  fraunces:        { name: 'Fraunces',           class: 'font-fraunces',      family: "'Fraunces', serif" },
-  baskerville:     { name: 'Libre Baskerville',  class: 'font-baskerville',   family: "'Libre Baskerville', serif" },
+  inter:    { name: 'Inter',            class: 'font-inter',    family: "'Inter', sans-serif" },
+  playfair: { name: 'Playfair Display', class: 'font-playfair', family: "'Playfair Display', serif" },
+  times:    { name: 'Times New Roman',  class: 'font-times',    family: "'Times New Roman', Times, serif" },
 };
 
 export const PRIORITY_STYLES = {

@@ -15,6 +15,7 @@ export default function Sidebar({
   const [newListName, setNewListName] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   function handleAdd(e) {
     e.preventDefault();
@@ -41,13 +42,15 @@ export default function Sidebar({
           const isActive = list.id === currentListId;
           const completedCount = list.todos.filter((t) => t.completed).length;
           const totalCount = list.todos.length;
+          const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+          const isConfirming = confirmDeleteId === list.id;
 
           return (
             <div
               key={list.id}
               className={`group rounded-xl transition-all ${
                 isActive
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                  ? 'bg-linear-to-r from-blue-500 to-blue-600 text-white shadow-lg'
                   : isDarkTheme
                   ? 'hover:bg-gray-800/70 text-gray-200'
                   : 'hover:bg-gray-100 text-gray-700'
@@ -70,6 +73,29 @@ export default function Sidebar({
                     autoFocus
                   />
                 </div>
+              ) : isConfirming ? (
+                /* Inline delete confirmation */
+                <div className="p-3">
+                  <p className={`text-xs font-medium mb-2 ${isActive ? 'text-blue-100' : isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
+                    Delete &ldquo;{list.name}&rdquo;? This cannot be undone.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { onDeleteList(list.id); setConfirmDeleteId(null); }}
+                      className="flex-1 px-2 py-1 text-xs font-bold rounded-lg bg-rose-600 text-white hover:bg-rose-700"
+                    >
+                      Delete
+                    </button>
+                    <button
+                      onClick={() => setConfirmDeleteId(null)}
+                      className={`flex-1 px-2 py-1 text-xs font-bold rounded-lg ${
+                        isDarkTheme ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <div className="flex items-center justify-between p-3">
                   <button onClick={() => setCurrentListId(list.id)} className="flex-1 text-left min-w-0">
@@ -80,10 +106,19 @@ export default function Sidebar({
                       <span className="font-semibold truncate">{list.name}</span>
                     </div>
                     <div className={`text-xs mt-0.5 ${isActive ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
-                      {totalCount === 0
-                        ? 'No tasks'
-                        : `${completedCount}/${totalCount} done`}
+                      {totalCount === 0 ? 'No tasks' : `${completedCount}/${totalCount} done`}
                     </div>
+                    {/* Progress bar */}
+                    {totalCount > 0 && (
+                      <div className={`mt-1.5 h-1 rounded-full overflow-hidden ${
+                        isActive ? 'bg-blue-400/40' : isDarkTheme ? 'bg-gray-700' : 'bg-gray-200'
+                      }`}>
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${isActive ? 'bg-white' : 'bg-blue-500'}`}
+                          style={{ width: `${progressPct}%` }}
+                        />
+                      </div>
+                    )}
                   </button>
 
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
@@ -102,7 +137,7 @@ export default function Sidebar({
 
                     {lists.length > 1 && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); onDeleteList(list.id); }}
+                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(list.id); }}
                         className={`p-1.5 rounded-lg transition-colors ${
                           isActive ? 'text-white hover:bg-white/20' : isDarkTheme ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-200'
                         }`}

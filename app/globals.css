@@ -1,21 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700;800&family=Roboto:wght@300;400;500;700&family=Poppins:wght@300;400;500;600;700&family=Lora:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&family=Crimson+Text:wght@400;600;700&family=Cormorant+Garamond:wght@300;400;500;600;700&family=DM+Serif+Display&family=Fraunces:opsz,wght@9..144,300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&family=Unbounded:wght@300;400;500;600&family=Libre+Baskerville:wght@400;700&display=swap');
 @import "tailwindcss";
 
 :root {
   --font-inter: 'Inter', sans-serif;
   --font-playfair: 'Playfair Display', serif;
-  --font-roboto: 'Roboto', sans-serif;
-  --font-poppins: 'Poppins', sans-serif;
-  --font-lora: 'Lora', serif;
-  --font-montserrat: 'Montserrat', sans-serif;
-  --font-crimson: 'Crimson Text', serif;
-  --font-cormorant: 'Cormorant Garamond', serif;
-  --font-dm-serif: 'DM Serif Display', serif;
-  --font-fraunces: 'Fraunces', serif;
-  --font-syne: 'Syne', sans-serif;
-  --font-space-grotesk: 'Space Grotesk', sans-serif;
-  --font-unbounded: 'Unbounded', sans-serif;
-  --font-baskerville: 'Libre Baskerville', serif;
+  --font-times: 'Times New Roman', Times, serif;
 }
 
 body {
@@ -25,18 +13,7 @@ body {
 
 .font-inter { font-family: var(--font-inter); }
 .font-playfair { font-family: var(--font-playfair); }
-.font-roboto { font-family: var(--font-roboto); }
-.font-poppins { font-family: var(--font-poppins); }
-.font-lora { font-family: var(--font-lora); }
-.font-montserrat { font-family: var(--font-montserrat); }
-.font-crimson { font-family: var(--font-crimson); }
-.font-cormorant { font-family: var(--font-cormorant); }
-.font-dm-serif { font-family: var(--font-dm-serif); }
-.font-fraunces { font-family: var(--font-fraunces); }
-.font-syne { font-family: var(--font-syne); }
-.font-space-grotesk { font-family: var(--font-space-grotesk); }
-.font-unbounded { font-family: var(--font-unbounded); }
-.font-baskerville { font-family: var(--font-baskerville); }
+.font-times { font-family: var(--font-times); }
 
 /* Premium animations */
 @keyframes slideIn {

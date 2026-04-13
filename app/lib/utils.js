@@ -109,6 +109,35 @@ export function launchConfetti(canvas) {
   draw();
 }
 
+// ─── Tag Colors ───────────────────────────────────────────────────────────────
+
+const TAG_COLORS = [
+  'bg-purple-100 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300',
+  'bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300',
+  'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300',
+  'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300',
+  'bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-300',
+  'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300',
+  'bg-teal-100 text-teal-800 dark:bg-teal-950/50 dark:text-teal-300',
+  'bg-orange-100 text-orange-800 dark:bg-orange-950/50 dark:text-orange-300',
+];
+
+export function getTagColorClass(tag) {
+  if (!tag) return TAG_COLORS[0];
+  const hash = [...tag].reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return TAG_COLORS[hash % TAG_COLORS.length];
+}
+
+// ─── Recurring Tasks ──────────────────────────────────────────────────────────
+
+export function getNextRecurrenceDate(dueDateStr, recurrence) {
+  const base = dueDateStr ? new Date(dueDateStr + 'T12:00:00') : new Date();
+  if (recurrence === 'daily') base.setDate(base.getDate() + 1);
+  else if (recurrence === 'weekly') base.setDate(base.getDate() + 7);
+  else if (recurrence === 'monthly') base.setMonth(base.getMonth() + 1);
+  return base.toISOString().split('T')[0];
+}
+
 // ─── Misc ─────────────────────────────────────────────────────────────────────
 
 export function formatDate() {

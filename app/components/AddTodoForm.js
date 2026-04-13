@@ -7,6 +7,7 @@ const AddTodoForm = forwardRef(function AddTodoForm({ onAdd, mode, isDarkTheme }
   const [dueDate, setDueDate] = useState('');
   const [priority, setPriority] = useState('medium');
   const [tag, setTag] = useState('');
+  const [recurrence, setRecurrence] = useState('none');
 
   const inputClass = `px-4 py-3 border-2 rounded-xl text-sm font-medium focus:border-blue-500 focus:ring-0 ${
     isDarkTheme
@@ -22,11 +23,13 @@ const AddTodoForm = forwardRef(function AddTodoForm({ onAdd, mode, isDarkTheme }
       dueDate: mode === 'advanced' ? dueDate : null,
       priority: mode === 'advanced' ? priority : 'medium',
       tag: mode === 'advanced' ? tag : null,
+      recurrence: mode === 'advanced' && recurrence !== 'none' ? recurrence : null,
     });
     setText('');
     setDueDate('');
     setPriority('medium');
     setTag('');
+    setRecurrence('none');
   }
 
   return (
@@ -38,7 +41,7 @@ const AddTodoForm = forwardRef(function AddTodoForm({ onAdd, mode, isDarkTheme }
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="What needs to be done? (Double-click tasks to edit)"
-          className={`${mode === 'advanced' ? 'lg:col-span-5' : 'flex-1'} ${inputClass}`}
+          className={`${mode === 'advanced' ? 'lg:col-span-4' : 'flex-1'} ${inputClass}`}
         />
 
         {mode === 'advanced' && (
@@ -59,18 +62,28 @@ const AddTodoForm = forwardRef(function AddTodoForm({ onAdd, mode, isDarkTheme }
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
-              className={`lg:col-span-2 ${inputClass}`}
+              className={`lg:col-span-1 ${inputClass}`}
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
               <option value="high">High</option>
+            </select>
+            <select
+              value={recurrence}
+              onChange={(e) => setRecurrence(e.target.value)}
+              className={`lg:col-span-2 ${inputClass}`}
+            >
+              <option value="none">No repeat</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
             </select>
           </>
         )}
 
         <button
           type="submit"
-          className={`${mode === 'advanced' ? 'lg:col-span-1' : ''} btn-primary px-5 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 whitespace-nowrap`}
+          className={`${mode === 'advanced' ? 'lg:col-span-1' : ''} btn-primary px-5 py-3 bg-linear-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 whitespace-nowrap`}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M12 5v14M5 12h14" />

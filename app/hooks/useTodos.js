@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { arrayMove } from '@dnd-kit/sortable';
-import { generateId, calcProgress } from '../lib/utils';
+import { generateId, calcProgress, getNextRecurrenceDate } from '../lib/utils';
 
 const STORAGE_KEYS = {
   lists: 'doneAndDustedLists',
@@ -11,6 +11,7 @@ const STORAGE_KEYS = {
   font: 'doneAndDustedFont',
   mode: 'doneAndDustedMode',
   layout: 'doneAndDustedLayout',
+  sortBy: 'doneAndDustedSortBy',
 };
 
 function checkParentCompletion(todos) {
@@ -23,7 +24,6 @@ function checkParentCompletion(todos) {
   });
 }
 
-// Recursively updates a subtask anywhere in the tree by id
 function deepUpdateSubtask(subtasks, targetId, updater) {
   return subtasks.map((s) => {
     if (s.id === targetId) return updater(s);
@@ -43,6 +43,14 @@ function deepDeleteSubtask(subtasks, targetId) {
     }));
 }
 
+function markAllSubtasksComplete(subtasks, val) {
+  return subtasks.map((s) => ({
+    ...s,
+    completed: val,
+    subtasks: s.subtasks ? markAllSubtasksComplete(s.subtasks, val) : [],
+  }));
+}
+
 export function useTodos() {
   const [lists, setLists] = useState([{ id: 'default', name: 'My Tasks', todos: [] }]);
   const [currentListId, setCurrentListId] = useState('default');
@@ -50,6 +58,9 @@ export function useTodos() {
   const [font, setFont] = useState('inter');
   const [mode, setMode] = useState('basic');
   const [layout, setLayout] = useState('grid');
+  const [sortBy, setSortBy] = useState('manual');
+  const [deletedTodo, setDeletedTodo] = useState(null); // { todo, index, listId }
+  const undoTimerRef = useRef(null);
 
   // ── Load from localStorage ───────────────────────────────────────────────
   useEffect(() => {
@@ -57,7 +68,6 @@ export function useTodos() {
       try { return localStorage.getItem(key); } catch { return null; }
     };
 
-    // Ensure every subtask (at any depth) has a subtasks array
     function migrateSubtasks(subtasks) {
       if (!Array.isArray(subtasks)) return [];
       return subtasks.map((s) => ({
@@ -72,10 +82,10 @@ export function useTodos() {
     const savedFont = saved(STORAGE_KEYS.font);
     const savedMode = saved(STORAGE_KEYS.mode);
     const savedLayout = saved(STORAGE_KEYS.layout);
+    const savedSortBy = saved(STORAGE_KEYS.sortBy);
 
     if (savedLists) {
       const parsed = JSON.parse(savedLists);
-      // Migrate: ensure subtasks arrays exist at all depths
       const migrated = parsed.map((list) => ({
         ...list,
         todos: list.todos.map((todo) => ({
@@ -86,10 +96,17 @@ export function useTodos() {
       setLists(migrated);
     }
     if (savedId) setCurrentListId(savedId);
-    if (savedTheme) setTheme(savedTheme);
     if (savedFont) setFont(savedFont);
     if (savedMode) setMode(savedMode);
     if (savedLayout) setLayout(savedLayout);
+    if (savedSortBy) setSortBy(savedSortBy);
+
+    // System dark mode detection — only if user hasn't saved a theme preference
+    if (savedTheme) {
+      setTheme(savedTheme);
+    } else if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      setTheme('charcoal');
+    }
   }, []);
 
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.lists, JSON.stringify(lists)); }, [lists]);
@@ -98,6 +115,10 @@ export function useTodos() {
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.font, font); }, [font]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.mode, mode); }, [mode]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.layout, layout); }, [layout]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.sortBy, sortBy); }, [sortBy]);
+
+  // Cleanup undo timer on unmount
+  useEffect(() => () => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current); }, []);
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const currentList = lists.find((l) => l.id === currentListId) || lists[0];
@@ -112,7 +133,7 @@ export function useTodos() {
   }
 
   // ── Todo CRUD ─────────────────────────────────────────────────────────────
-  function addTodo({ text, dueDate, priority, tag, notes }) {
+  function addTodo({ text, dueDate, priority, tag, notes, recurrence }) {
     const newTodo = {
       id: generateId(),
       text,
@@ -123,32 +144,75 @@ export function useTodos() {
       tag: tag || null,
       notes: notes || '',
       createdAt: new Date().toISOString(),
+      recurrence: recurrence || null,
     };
     updateCurrentListTodos((prev) => [...prev, newTodo]);
   }
 
   function toggleTodo(id) {
-    updateCurrentListTodos((prev) =>
-      prev.map((todo) => {
-        if (todo.id !== id) return todo;
+    updateCurrentListTodos((prev) => {
+      const result = [];
+      for (const todo of prev) {
+        if (todo.id !== id) { result.push(todo); continue; }
         const newCompleted = !todo.completed;
-        const markSubtasks = (subtasks, val) =>
-          subtasks.map((s) => ({
-            ...s,
-            completed: val,
-            subtasks: s.subtasks ? markSubtasks(s.subtasks, val) : [],
-          }));
-        return {
+        const updated = {
           ...todo,
           completed: newCompleted,
-          subtasks: todo.subtasks ? markSubtasks(todo.subtasks, newCompleted) : [],
+          subtasks: todo.subtasks ? markAllSubtasksComplete(todo.subtasks, newCompleted) : [],
         };
-      })
-    );
+        result.push(updated);
+        // Spawn next occurrence for recurring tasks when completing
+        if (newCompleted && todo.recurrence) {
+          result.push({
+            id: generateId(),
+            text: todo.text,
+            completed: false,
+            subtasks: [],
+            dueDate: getNextRecurrenceDate(todo.dueDate, todo.recurrence),
+            priority: todo.priority,
+            tag: todo.tag,
+            notes: '',
+            createdAt: new Date().toISOString(),
+            recurrence: todo.recurrence,
+          });
+        }
+      }
+      return result;
+    });
   }
 
   function deleteTodo(id) {
+    const todo = todos.find((t) => t.id === id);
+    const index = todos.findIndex((t) => t.id === id);
+    if (!todo) return;
+
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     updateCurrentListTodos((prev) => prev.filter((t) => t.id !== id));
+    setDeletedTodo({ todo, index, listId: currentListId });
+
+    undoTimerRef.current = setTimeout(() => {
+      setDeletedTodo(null);
+      undoTimerRef.current = null;
+    }, 5000);
+  }
+
+  function undoDelete() {
+    if (!deletedTodo) return;
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setLists((prev) =>
+      prev.map((l) => {
+        if (l.id !== deletedTodo.listId) return l;
+        const newTodos = [...l.todos];
+        newTodos.splice(deletedTodo.index, 0, deletedTodo.todo);
+        return { ...l, todos: newTodos };
+      })
+    );
+    setDeletedTodo(null);
+  }
+
+  function dismissUndo() {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setDeletedTodo(null);
   }
 
   function editTodo(id, newText) {
@@ -160,6 +224,32 @@ export function useTodos() {
   function updateTodoNotes(id, notes) {
     updateCurrentListTodos((prev) =>
       prev.map((t) => (t.id === id ? { ...t, notes } : t))
+    );
+  }
+
+  // ── Bulk actions ──────────────────────────────────────────────────────────
+  function bulkDelete(ids) {
+    updateCurrentListTodos((prev) => prev.filter((t) => !ids.has(t.id)));
+  }
+
+  function bulkComplete(ids) {
+    updateCurrentListTodos((prev) =>
+      prev.map((t) =>
+        ids.has(t.id)
+          ? { ...t, completed: true, subtasks: markAllSubtasksComplete(t.subtasks, true) }
+          : t
+      )
+    );
+  }
+
+  function moveTodosToList(ids, targetListId) {
+    const todosToMove = todos.filter((t) => ids.has(t.id));
+    setLists((prev) =>
+      prev.map((l) => {
+        if (l.id === currentListId) return { ...l, todos: l.todos.filter((t) => !ids.has(t.id)) };
+        if (l.id === targetListId) return { ...l, todos: [...l.todos, ...todosToMove] };
+        return l;
+      })
     );
   }
 
@@ -225,6 +315,7 @@ export function useTodos() {
   function handleDragEnd(event) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
+    if (sortBy !== 'manual') setSortBy('manual');
     updateCurrentListTodos((prev) => {
       const oldIndex = prev.findIndex((t) => t.id === active.id);
       const newIndex = prev.findIndex((t) => t.id === over.id);
@@ -262,8 +353,12 @@ export function useTodos() {
     font, setFont,
     mode, setMode,
     layout, setLayout,
+    sortBy, setSortBy,
+    deletedTodo, undoDelete, dismissUndo,
     // todo actions
     addTodo, toggleTodo, deleteTodo, editTodo, updateTodoNotes,
+    // bulk actions
+    bulkDelete, bulkComplete, moveTodosToList,
     // subtask actions
     addSubtask, toggleSubtask, deleteSubtask, editSubtask,
     // dnd
