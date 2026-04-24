@@ -41,7 +41,7 @@ export default function ActivityPanel({ isOpen, onClose, onlineUsers, events, cu
   const closeBtn = isDarkTheme ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-200';
 
   return (
-    <div className={`w-72 shrink-0 border-l overflow-y-auto flex flex-col ${isDarkTheme ? 'bg-gray-900/60 border-gray-700/30' : 'bg-white/60 border-gray-300/40'} backdrop-blur-xl`}>
+    <div className={`w-72 shrink-0 border-l overflow-y-auto flex flex-col ${isDarkTheme ? 'bg-gray-900/70 border-gray-700/30' : 'bg-white/75 border-gray-300/40'} backdrop-blur-xl`}>
       <div className="flex items-center justify-between px-5 pt-5 pb-3">
         <span className={`text-xl font-bold ${heading}`}>Room Activity</span>
         <button onClick={onClose} className={`p-1.5 rounded-lg transition-colors ${closeBtn}`}>

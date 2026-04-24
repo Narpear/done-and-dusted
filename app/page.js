@@ -37,7 +37,7 @@ export default function TodoApp() {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [isMoveOpen, setIsMoveOpen] = useState(false);
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
-  const [openSection, setOpenSection] = useState('appearance');
+  const [openSection, setOpenSection] = useState(null);
   function toggleSection(s) { setOpenSection((p) => p === s ? null : s); }
 
   const {
@@ -353,7 +353,7 @@ export default function TodoApp() {
       {/* Sidebar */}
       <div className={`${isSidebarOpen ? 'w-72' : 'w-0'} transition-all duration-300 shrink-0 overflow-hidden`}>
         <div className={`h-full border-r overflow-y-auto backdrop-blur-xl ${
-          isDarkTheme ? 'bg-gray-900/50 border-gray-700/20' : 'bg-white/30 border-white/20'
+          isDarkTheme ? 'bg-gray-900/70 border-gray-700/30' : 'bg-white/60 border-white/40'
         }`}>
           <Sidebar
             lists={lists}
@@ -498,29 +498,29 @@ export default function TodoApp() {
                   {isSettingsOpen && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setIsSettingsOpen(false)} />
-                      <div className="dropdown-menu settings-panel absolute right-0 mt-2 w-80 glass rounded-xl shadow-2xl z-20 border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
+                      <div className={`dropdown-menu settings-panel absolute right-0 mt-2 w-80 rounded-xl shadow-2xl z-20 border backdrop-blur-2xl overflow-y-auto max-h-[calc(100vh-7rem)] ${isDarkTheme ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}>
 
                         {/* ── Appearance ── */}
                         <button
                           onClick={() => toggleSection('appearance')}
-                          className={`w-full flex items-center justify-between px-4 py-3 text-sm font-semibold transition-colors ${isDarkTheme ? 'text-gray-200 hover:bg-gray-700/50' : 'text-gray-700 hover:bg-gray-50'}`}
+                          className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold transition-colors ${isDarkTheme ? 'text-gray-200 hover:bg-gray-700/50' : 'text-gray-700 hover:bg-gray-50'}`}
                         >
-                          <span className="flex items-center gap-2.5">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+                          <span className="flex items-center gap-2">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
                             Appearance
                           </span>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`transition-transform ${openSection === 'appearance' ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6"/></svg>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`transition-transform ${openSection === 'appearance' ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6"/></svg>
                         </button>
                         {openSection === 'appearance' && (
-                          <div className={`px-4 pb-4 space-y-4 border-t ${isDarkTheme ? 'border-gray-700/50' : 'border-gray-100'}`}>
+                          <div className={`px-3 pb-3 space-y-3 border-t ${isDarkTheme ? 'border-gray-700/50' : 'border-gray-100'}`}>
 
                             {/* Mode */}
-                            <div className="pt-3">
-                              <label className={`text-xs font-semibold uppercase tracking-widest mb-2 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>Mode</label>
+                            <div className="pt-2">
+                              <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>Mode</label>
                               <div className={`flex rounded-lg overflow-hidden border ${isDarkTheme ? 'border-gray-700' : 'border-gray-200'}`}>
                                 {['basic', 'advanced'].map((m) => (
                                   <button key={m} onClick={() => setMode(m)}
-                                    className={`flex-1 py-2 text-sm font-semibold capitalize transition-colors ${mode === m ? 'bg-gray-700 text-white' : isDarkTheme ? 'text-gray-300 hover:bg-gray-700/60' : 'text-gray-700 hover:bg-gray-50'}`}>
+                                    className={`flex-1 py-1.5 text-xs font-semibold capitalize transition-colors ${mode === m ? 'bg-gray-700 text-white' : isDarkTheme ? 'text-gray-300 hover:bg-gray-700/60' : 'text-gray-700 hover:bg-gray-50'}`}>
                                     {m}
                                   </button>
                                 ))}
@@ -529,34 +529,35 @@ export default function TodoApp() {
 
                             {/* Theme */}
                             <div>
-                              <label className={`text-xs font-semibold uppercase tracking-widest mb-2 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>Color Gradients</label>
-                              <div className="flex flex-wrap gap-2">
+                              <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>Color Gradients</label>
+                              <div className="flex flex-wrap gap-1.5">
                                 {Object.entries(THEMES).filter(([, t]) => !t.bgImage).map(([key, t]) => (
-                                  <SwatchButton key={key} themeKey={key} t={t} active={theme === key} onSelect={setTheme} isDarkTheme={isDarkTheme} />
+                                  <SwatchButton key={key} themeKey={key} t={t} active={theme === key} onSelect={setTheme} isDarkTheme={isDarkTheme} size={22} />
                                 ))}
                               </div>
                             </div>
                             <div>
-                              <label className={`text-xs font-semibold uppercase tracking-widest mb-2 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>Backdrops</label>
-                              <div className="flex flex-wrap gap-2">
+                              <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>Backdrops</label>
+                              <div className="flex flex-wrap gap-1.5">
                                 {Object.entries(THEMES).filter(([, t]) => !!t.bgImage).map(([key, t]) => (
-                                  <SwatchButton key={key} themeKey={key} t={t} active={theme === key} onSelect={setTheme} isDarkTheme={isDarkTheme} />
+                                  <SwatchButton key={key} themeKey={key} t={t} active={theme === key} onSelect={setTheme} isDarkTheme={isDarkTheme} size={22} />
                                 ))}
                               </div>
                             </div>
 
                             {/* Font */}
                             <div>
-                              <label className={`text-xs font-semibold uppercase tracking-widest mb-2 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>Font</label>
-                              <div className={`rounded-lg border overflow-hidden ${isDarkTheme ? 'border-gray-700' : 'border-gray-200'}`}>
-                                {Object.entries(FONTS).map(([key, f], i, arr) => (
-                                  <button key={key} onClick={() => setFont(key)} style={{ fontFamily: f.family }}
-                                    className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between gap-2 ${font === key ? 'bg-gray-700 text-white' : isDarkTheme ? 'text-gray-200 hover:bg-gray-700/60' : 'text-gray-800 hover:bg-gray-50'} ${i < arr.length - 1 ? (isDarkTheme ? 'border-b border-gray-700/50' : 'border-b border-gray-100') : ''}`}>
-                                    <span>{f.name}</span>
-                                    {font === key && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 13l4 4L19 7"/></svg>}
-                                  </button>
+                              <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>Font</label>
+                              <select
+                                value={font}
+                                onChange={(e) => setFont(e.target.value)}
+                                style={{ fontFamily: currentFont.family }}
+                                className={`w-full px-2.5 py-1.5 text-xs rounded-lg border focus:outline-none cursor-pointer ${isDarkTheme ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-white border-gray-200 text-gray-800'}`}
+                              >
+                                {Object.entries(FONTS).map(([key, f]) => (
+                                  <option key={key} value={key} style={{ fontFamily: f.family }}>{f.name}</option>
                                 ))}
-                              </div>
+                              </select>
                             </div>
                           </div>
                         )}
@@ -564,27 +565,27 @@ export default function TodoApp() {
                         {/* ── Account ── */}
                         <button
                           onClick={() => toggleSection('account')}
-                          className={`w-full flex items-center justify-between px-4 py-3 text-sm font-semibold transition-colors border-t ${isDarkTheme ? 'text-gray-200 hover:bg-gray-700/50 border-gray-700/50' : 'text-gray-700 hover:bg-gray-50 border-gray-100'}`}
+                          className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold transition-colors border-t ${isDarkTheme ? 'text-gray-200 hover:bg-gray-700/50 border-gray-700/50' : 'text-gray-700 hover:bg-gray-50 border-gray-100'}`}
                         >
-                          <span className="flex items-center gap-2.5">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                          <span className="flex items-center gap-2">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                             Account
-                            <span className={`text-xs font-normal ${isDarkTheme ? 'text-gray-500' : 'text-gray-400'}`}>{username}</span>
+                            <span className={`text-[10px] font-normal ${isDarkTheme ? 'text-gray-500' : 'text-gray-400'}`}>{username}</span>
                           </span>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`transition-transform ${openSection === 'account' ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6"/></svg>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`transition-transform ${openSection === 'account' ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6"/></svg>
                         </button>
                         {openSection === 'account' && (
                           <div className={`border-t ${isDarkTheme ? 'border-gray-700/50' : 'border-gray-100'}`}>
                             <button
                               onClick={() => { logout(); setIsSettingsOpen(false); setConfirmDeleteAccount(false); }}
-                              className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors ${isDarkTheme ? 'text-gray-300 hover:bg-gray-700/50' : 'text-gray-700 hover:bg-gray-50'}`}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold transition-colors ${isDarkTheme ? 'text-gray-300 hover:bg-gray-700/50' : 'text-gray-700 hover:bg-gray-50'}`}
                             >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
                               Log out
                             </button>
                             {confirmDeleteAccount ? (
-                              <div className={`mx-4 mb-3 p-3 rounded-lg ${isDarkTheme ? 'bg-gray-800' : 'bg-gray-100'}`}>
-                                <p className={`text-xs font-medium mb-2 ${isDarkTheme ? 'text-gray-200' : 'text-gray-800'}`}>Delete your account? Your username becomes available again.</p>
+                              <div className={`mx-3 mb-2.5 p-2.5 rounded-lg ${isDarkTheme ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                                <p className={`text-[11px] font-medium mb-2 ${isDarkTheme ? 'text-gray-200' : 'text-gray-800'}`}>Delete your account? Your username becomes available again.</p>
                                 <div className="flex gap-2">
                                   <button
                                     onClick={async () => {
@@ -592,17 +593,17 @@ export default function TodoApp() {
                                       await supabase.from('users').delete().eq('username', username);
                                       logout(); setIsSettingsOpen(false); setConfirmDeleteAccount(false);
                                     }}
-                                    className="flex-1 px-2 py-1.5 text-xs font-bold rounded-lg bg-gray-600 text-white hover:bg-gray-700"
+                                    className="flex-1 px-2 py-1 text-[11px] font-bold rounded-lg bg-gray-600 text-white hover:bg-gray-700"
                                   >Yes, delete</button>
-                                  <button onClick={() => setConfirmDeleteAccount(false)} className={`flex-1 px-2 py-1.5 text-xs font-bold rounded-lg ${isDarkTheme ? 'bg-white/10 text-gray-300' : 'bg-gray-200 text-gray-700'}`}>Cancel</button>
+                                  <button onClick={() => setConfirmDeleteAccount(false)} className={`flex-1 px-2 py-1 text-[11px] font-bold rounded-lg ${isDarkTheme ? 'bg-white/10 text-gray-300' : 'bg-gray-200 text-gray-700'}`}>Cancel</button>
                                 </div>
                               </div>
                             ) : (
                               <button
                                 onClick={() => setConfirmDeleteAccount(true)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors ${isDarkTheme ? 'text-gray-500 hover:bg-gray-700/50 hover:text-gray-300' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
+                                className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold transition-colors ${isDarkTheme ? 'text-gray-500 hover:bg-gray-700/50 hover:text-gray-300' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
                               >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 3a4 4 0 110 8 4 4 0 010-8zM18 8l4 4-4 4"/></svg>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 3a4 4 0 110 8 4 4 0 010-8zM18 8l4 4-4 4"/></svg>
                                 Delete account
                               </button>
                             )}
@@ -612,11 +613,11 @@ export default function TodoApp() {
                         {/* ── Shortcuts ── */}
                         <button
                           onClick={() => { setIsSettingsOpen(false); setIsShortcutsOpen(true); }}
-                          className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors border-t ${isDarkTheme ? 'text-gray-300 hover:bg-gray-700/50 border-gray-700/50' : 'text-gray-700 hover:bg-gray-50 border-gray-100'}`}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold transition-colors border-t ${isDarkTheme ? 'text-gray-300 hover:bg-gray-700/50 border-gray-700/50' : 'text-gray-700 hover:bg-gray-50 border-gray-100'}`}
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M6 11h.01M10 11h.01M14 11h.01M18 11h.01M8 15h8" strokeLinecap="round"/></svg>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M6 11h.01M10 11h.01M14 11h.01M18 11h.01M8 15h8" strokeLinecap="round"/></svg>
                           Keyboard Shortcuts
-                          <span className={`ml-auto text-xs px-1.5 py-0.5 rounded font-mono ${isDarkTheme ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>?</span>
+                          <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded font-mono ${isDarkTheme ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>?</span>
                         </button>
 
                       </div>
@@ -717,7 +718,7 @@ export default function TodoApp() {
 
           {/* Empty state */}
           {activeTodos.length === 0 && completedTodos.length === 0 && (
-            <div className="text-center py-20">
+            <div className="text-center py-2">
               <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-5 floating-btn ${
                 isDarkTheme ? 'bg-white/10' : isImageTheme ? 'bg-white/40' : 'bg-black/6'
               }`}>
