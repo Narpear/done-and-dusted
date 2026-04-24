@@ -85,6 +85,23 @@ export const THEMES = {
     swatchGradient: 'linear-gradient(135deg, #030712, #4c0519, #7f1d1d)',
     dark: true,
   },
+  // ── Image themes ────────────────────────────────────────────────────────────
+  'beach-sunset': {
+    name: 'Beach Sunset',
+    bg: '',
+    bgImage: '/themes/beach sunset.jpg',
+    accent: '#c2410c',
+    swatchGradient: 'url(/themes/beach%20sunset.jpg) center/cover',
+    dark: false,
+  },
+  'city-house': {
+    name: 'City Lights',
+    bg: '',
+    bgImage: '/themes/city lights.jpg',
+    accent: '#334155',
+    swatchGradient: 'url(/themes/city%20lights.jpg) center/cover',
+    dark: false,
+  },
 };
 
 export const FONTS = {

@@ -50,10 +50,12 @@ export default function Sidebar({
               key={list.id}
               className={`group rounded-xl transition-all ${
                 isActive
-                  ? 'bg-linear-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                  ? isDarkTheme
+                    ? 'bg-white/10 text-white shadow-sm'
+                    : 'bg-black/8 text-gray-800 shadow-sm'
                   : isDarkTheme
-                  ? 'hover:bg-gray-800/70 text-gray-200'
-                  : 'hover:bg-gray-100 text-gray-700'
+                  ? 'hover:bg-white/10 text-gray-200'
+                  : 'hover:bg-black/5 text-gray-700'
               }`}
             >
               {editingId === list.id ? (
@@ -105,16 +107,20 @@ export default function Sidebar({
                       </svg>
                       <span className="font-semibold truncate">{list.name}</span>
                     </div>
-                    <div className={`text-xs mt-0.5 ${isActive ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
+                    <div className={`text-xs mt-0.5 ${
+                      isActive
+                        ? isDarkTheme ? 'text-gray-300' : 'text-gray-500'
+                        : isDarkTheme ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
                       {totalCount === 0 ? 'No tasks' : `${completedCount}/${totalCount} done`}
                     </div>
                     {/* Progress bar */}
                     {totalCount > 0 && (
                       <div className={`mt-1.5 h-1 rounded-full overflow-hidden ${
-                        isActive ? 'bg-blue-400/40' : isDarkTheme ? 'bg-gray-700' : 'bg-gray-200'
+                        isDarkTheme ? 'bg-gray-700' : 'bg-black/10'
                       }`}>
                         <div
-                          className={`h-full rounded-full transition-all duration-500 ${isActive ? 'bg-white' : 'bg-blue-500'}`}
+                          className={`h-full rounded-full transition-all duration-500 ${isDarkTheme ? 'bg-gray-400' : 'bg-gray-500/50'}`}
                           style={{ width: `${progressPct}%` }}
                         />
                       </div>

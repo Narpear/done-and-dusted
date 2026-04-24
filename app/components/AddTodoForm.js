@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, forwardRef } from 'react';
+import { useVoiceInput } from '../hooks/useVoiceInput';
 
 const AddTodoForm = forwardRef(function AddTodoForm({ onAdd, mode, isDarkTheme }, ref) {
   const [text, setText] = useState('');
@@ -8,6 +9,8 @@ const AddTodoForm = forwardRef(function AddTodoForm({ onAdd, mode, isDarkTheme }
   const [priority, setPriority] = useState('medium');
   const [tag, setTag] = useState('');
   const [recurrence, setRecurrence] = useState('none');
+
+  const { isRecording, toggle: toggleVoice } = useVoiceInput((transcript) => setText(transcript));
 
   const inputClass = `px-4 py-3 border-2 rounded-xl text-sm font-medium focus:border-blue-500 focus:ring-0 ${
     isDarkTheme
@@ -17,9 +20,13 @@ const AddTodoForm = forwardRef(function AddTodoForm({ onAdd, mode, isDarkTheme }
 
   function handleSubmit(e) {
     e.preventDefault();
-    if (!text.trim()) return;
+    submit(text);
+  }
+
+  function submit(value) {
+    if (!value.trim()) return;
     onAdd({
-      text: text.trim(),
+      text: value.trim(),
       dueDate: mode === 'advanced' ? dueDate : null,
       priority: mode === 'advanced' ? priority : 'medium',
       tag: mode === 'advanced' ? tag : null,
@@ -32,17 +39,47 @@ const AddTodoForm = forwardRef(function AddTodoForm({ onAdd, mode, isDarkTheme }
     setRecurrence('none');
   }
 
+  function handleVoice() {
+    toggleVoice((finalText) => {
+      submit(finalText);
+      setText('');
+    });
+  }
+
   return (
     <form onSubmit={handleSubmit} className="glass rounded-2xl shadow-xl p-5 mb-8">
       <div className={mode === 'advanced' ? 'grid grid-cols-1 lg:grid-cols-12 gap-3' : 'flex gap-3'}>
-        <input
-          ref={ref}
-          type="text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="What needs to be done? (Double-click tasks to edit)"
-          className={`${mode === 'advanced' ? 'lg:col-span-4' : 'flex-1'} ${inputClass}`}
-        />
+        <div className={`${mode === 'advanced' ? 'lg:col-span-4' : 'flex-1'} relative flex items-center`}>
+          <input
+            ref={ref}
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={isRecording ? 'Listening…' : 'What needs to be done?'}
+            className={`w-full pr-10 ${inputClass} ${isRecording ? 'ring-2 ring-rose-400' : ''}`}
+          />
+          <button
+            type="button"
+            onClick={handleVoice}
+            title={isRecording ? 'Stop (or wait 3 s)' : 'Voice input — auto-submits on silence'}
+            className={`absolute right-3 transition-all ${
+              isRecording
+                ? 'text-rose-500 animate-pulse scale-110'
+                : isDarkTheme ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-700'
+            }`}
+          >
+            {isRecording ? (
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="6" width="12" height="12" rx="2" />
+              </svg>
+            ) : (
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="2" width="6" height="12" rx="3" />
+                <path d="M5 10a7 7 0 0014 0M12 19v3M9 22h6" />
+              </svg>
+            )}
+          </button>
+        </div>
 
         {mode === 'advanced' && (
           <>
@@ -83,7 +120,7 @@ const AddTodoForm = forwardRef(function AddTodoForm({ onAdd, mode, isDarkTheme }
 
         <button
           type="submit"
-          className={`${mode === 'advanced' ? 'lg:col-span-1' : ''} btn-primary px-5 py-3 bg-linear-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 whitespace-nowrap`}
+          className={`${mode === 'advanced' ? 'lg:col-span-1' : ''} btn-primary px-5 py-3 bg-gray-700 hover:bg-gray-800 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 whitespace-nowrap`}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M12 5v14M5 12h14" />

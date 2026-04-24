@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useVoiceInput } from '../hooks/useVoiceInput';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { arrayMove } from '@dnd-kit/sortable';
@@ -36,6 +37,10 @@ export default function TodoItem({
   const [editText, setEditText] = useState(todo.text);
   const [notesText, setNotesText] = useState(todo.notes || '');
   const prevPctRef = useRef(calcProgressPct(todo));
+
+  const { isRecording: isSubtaskRecording, toggle: toggleSubtaskVoice } = useVoiceInput(
+    (transcript) => setSubtaskText(transcript)
+  );
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: todo.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
@@ -256,10 +261,14 @@ export default function TodoItem({
               <div className="mt-3">
                 <textarea
                   value={notesText}
-                  onChange={(e) => setNotesText(e.target.value)}
+                  onChange={(e) => {
+                    setNotesText(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 192) + 'px';
+                  }}
                   onBlur={handleNotesSave}
                   placeholder="Add notes..."
-                  rows={2}
+                  style={{ minHeight: '3rem', maxHeight: '192px', overflowY: 'auto' }}
                   className={`w-full px-3 py-2 text-xs rounded-lg border resize-none focus:outline-none focus:ring-1 focus:ring-blue-500 ${
                     isDarkTheme
                       ? 'bg-gray-700/60 border-gray-600 text-gray-200 placeholder:text-gray-500'
@@ -294,26 +303,51 @@ export default function TodoItem({
             {/* Add subtask form */}
             {isAddingSubtask && (
               <form onSubmit={handleAddSubtask} className="mt-2 flex gap-2">
-                <input
-                  type="text"
-                  value={subtaskText}
-                  onChange={(e) => setSubtaskText(e.target.value)}
-                  placeholder="Add a subtask..."
-                  className={`flex-1 min-w-0 px-3 py-1.5 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    isDarkTheme
-                      ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder:text-gray-400'
-                      : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-500'
-                  }`}
-                  autoFocus
-                  onBlur={() => setTimeout(() => { if (!subtaskText.trim()) setIsAddingSubtask(false); }, 150)}
-                />
-                <button type="submit" className="flex-shrink-0 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+                <div className="relative flex-1 min-w-0 flex items-center">
+                  <input
+                    type="text"
+                    value={subtaskText}
+                    onChange={(e) => setSubtaskText(e.target.value)}
+                    placeholder={isSubtaskRecording ? 'Listening…' : 'Add a subtask…'}
+                    className={`w-full pr-8 px-3 py-1.5 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isDarkTheme
+                        ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder:text-gray-400'
+                        : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-500'
+                    } ${isSubtaskRecording ? 'ring-2 ring-rose-400' : ''}`}
+                    autoFocus
+                    onBlur={() => setTimeout(() => { if (!subtaskText.trim()) setIsAddingSubtask(false); }, 150)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => toggleSubtaskVoice((finalText) => {
+                      if (finalText.trim()) {
+                        onAddSubtask(todo.id, finalText.trim());
+                        setSubtaskText('');
+                        setIsAddingSubtask(false);
+                      }
+                    })}
+                    className={`absolute right-2 transition-all ${
+                      isSubtaskRecording
+                        ? 'text-rose-500 animate-pulse'
+                        : isDarkTheme ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    {isSubtaskRecording ? (
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+                    ) : (
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0014 0M12 19v3M9 22h6" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                <button type="submit" className="shrink-0 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
                   Add
                 </button>
                 <button
                   type="button"
                   onClick={() => { setIsAddingSubtask(false); setSubtaskText(''); }}
-                  className={`flex-shrink-0 px-3 py-1.5 text-sm rounded-lg ${
+                  className={`shrink-0 px-3 py-1.5 text-sm rounded-lg ${
                     isDarkTheme ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >

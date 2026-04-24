@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useVoiceInput } from '../hooks/useVoiceInput';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { arrayMove } from '@dnd-kit/sortable';
@@ -22,6 +23,10 @@ export default function SubtaskItem({
   const [isEditing, setIsEditing] = useState(false);
   const [nestedText, setNestedText] = useState('');
   const [editText, setEditText] = useState(subtask.text);
+
+  const { isRecording: isNestedRecording, toggle: toggleNestedVoice } = useVoiceInput(
+    (transcript) => setNestedText(transcript)
+  );
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: subtask.id,
@@ -149,19 +154,44 @@ export default function SubtaskItem({
             {/* Add nested form */}
             {isAddingNested && (
               <form onSubmit={handleAddNested} className="mt-1.5 flex gap-1.5">
-                <input
-                  type="text"
-                  value={nestedText}
-                  onChange={(e) => setNestedText(e.target.value)}
-                  placeholder="Nested task..."
-                  className={`flex-1 min-w-0 px-2 py-1 text-xs rounded-lg border focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                    isDarkTheme ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder:text-gray-400'
-                      : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-500'
-                  }`}
-                  autoFocus
-                  onBlur={() => setTimeout(() => { if (!nestedText.trim()) setIsAddingNested(false); }, 150)}
-                />
-                <button type="submit" className="flex-shrink-0 px-2 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700">
+                <div className="relative flex-1 min-w-0 flex items-center">
+                  <input
+                    type="text"
+                    value={nestedText}
+                    onChange={(e) => setNestedText(e.target.value)}
+                    placeholder={isNestedRecording ? 'Listening…' : 'Nested task…'}
+                    className={`w-full pr-7 px-2 py-1 text-xs rounded-lg border focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                      isDarkTheme ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder:text-gray-400'
+                        : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-500'
+                    } ${isNestedRecording ? 'ring-1 ring-rose-400' : ''}`}
+                    autoFocus
+                    onBlur={() => setTimeout(() => { if (!nestedText.trim()) setIsAddingNested(false); }, 150)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => toggleNestedVoice((finalText) => {
+                      if (!finalText.trim()) return;
+                      const newNested = { id: Date.now().toString(), text: finalText.trim(), completed: false, subtasks: [] };
+                      onToggleSubtask(rootTodoId, subtask.id, { ...subtask, subtasks: [...(subtask.subtasks || []), newNested] });
+                      setNestedText('');
+                      setIsAddingNested(false);
+                    })}
+                    className={`absolute right-1.5 transition-all ${
+                      isNestedRecording
+                        ? 'text-rose-500 animate-pulse'
+                        : isDarkTheme ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    {isNestedRecording ? (
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+                    ) : (
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0014 0M12 19v3M9 22h6" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                <button type="submit" className="shrink-0 px-2 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700">
                   Add
                 </button>
               </form>
