@@ -28,11 +28,15 @@ export default function TodoItem({
   onSelect,
   isBulkMode,
   canDrag,
+  // room-only props
+  roomMembers,
+  onAssign,
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isNotesOpen, setIsNotesOpen] = useState(false);
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [subtaskText, setSubtaskText] = useState('');
   const [editText, setEditText] = useState(todo.text);
   const [notesText, setNotesText] = useState(todo.notes || '');
@@ -101,7 +105,7 @@ export default function TodoItem({
   return (
     <div ref={setNodeRef} style={style}>
       <div
-        className={`group relative card-hover glass rounded-xl border-l-4 ${cardBorder} ${cardBg} shadow-md ${
+        className={`group relative card-hover glass rounded-xl border border-black/8 dark:border-white/10 border-l-4 ${cardBorder} ${cardBg} shadow-md ${
           isDragging ? 'opacity-50 scale-105 z-50 shadow-2xl' : ''
         } ${todo.completed ? 'opacity-60' : ''} ${
           isSelected ? (isDarkTheme ? 'ring-2 ring-blue-400' : 'ring-2 ring-blue-500') : ''
@@ -253,6 +257,16 @@ export default function TodoItem({
                     )}
                   </>
                 )}
+
+                {/* Assignee badge */}
+                {todo.assignedTo && (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
+                    </svg>
+                    {todo.assignedTo}
+                  </span>
+                )}
               </div>
             )}
 
@@ -297,6 +311,44 @@ export default function TodoItem({
                 >
                   {isNotesOpen ? '↑ notes' : notesText ? '· notes' : '+ notes'}
                 </button>
+                {roomMembers && onAssign && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsAssignOpen((o) => !o)}
+                      className="text-xs font-medium hover:text-indigo-600 dark:hover:text-indigo-400"
+                      style={{ color: isDarkTheme ? '#9ca3af' : '#6b7280' }}
+                    >
+                      {todo.assignedTo ? `@ ${todo.assignedTo}` : '+ assign'}
+                    </button>
+                    {isAssignOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setIsAssignOpen(false)} />
+                        <div className={`absolute left-0 bottom-full mb-1.5 rounded-xl shadow-2xl z-20 border overflow-hidden min-w-32 ${isDarkTheme ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                          {todo.assignedTo && (
+                            <button
+                              onClick={() => { onAssign(todo.id, null); setIsAssignOpen(false); }}
+                              className={`w-full text-left px-3 py-2 text-xs font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20`}
+                            >
+                              Unassign
+                            </button>
+                          )}
+                          {roomMembers.map((m) => (
+                            <button
+                              key={m.username}
+                              onClick={() => { onAssign(todo.id, m.username); setIsAssignOpen(false); }}
+                              className={`w-full text-left px-3 py-2 text-xs font-medium flex items-center gap-2 ${isDarkTheme ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'} ${todo.assignedTo === m.username ? 'font-bold' : ''}`}
+                            >
+                              <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0" style={{ backgroundColor: m.color || '#6366f1' }}>
+                                {m.username[0].toUpperCase()}
+                              </span>
+                              {m.username}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -341,7 +393,7 @@ export default function TodoItem({
                     )}
                   </button>
                 </div>
-                <button type="submit" className="shrink-0 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+                <button type="submit" className="shrink-0 px-3 py-1.5 bg-gray-700 text-white text-sm rounded-lg hover:bg-gray-800">
                   Add
                 </button>
                 <button
@@ -351,7 +403,7 @@ export default function TodoItem({
                     isDarkTheme ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
-                  ✕
+                  Cancel
                 </button>
               </form>
             )}

@@ -132,3 +132,24 @@ CREATE INDEX ON room_todos(assigned_to);
 CREATE INDEX ON room_activity(room_id, created_at DESC);
 CREATE INDEX ON room_presence(room_id);
 CREATE INDEX ON room_presence(last_ping_at);  -- fast stale-cleanup query
+
+-- ------------------------------------------------------------
+-- Row-level security
+-- This app uses username-based identity (no Supabase Auth),
+-- so we open all tables to the anon key with permissive policies.
+-- ------------------------------------------------------------
+ALTER TABLE rooms          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE room_members   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE room_lists     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE room_todos     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE room_reactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE room_activity  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE room_presence  ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "open" ON rooms          FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "open" ON room_members   FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "open" ON room_lists     FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "open" ON room_todos     FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "open" ON room_reactions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "open" ON room_activity  FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "open" ON room_presence  FOR ALL USING (true) WITH CHECK (true);

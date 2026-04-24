@@ -8,12 +8,19 @@ import { THEMES, FONTS, KEYBOARD_SHORTCUTS } from './lib/constants';
 import { formatDate } from './lib/utils';
 import { useTodos } from './hooks/useTodos';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useUser } from './hooks/useUser';
+import { useRooms } from './hooks/useRooms';
+import { useRoomTodos } from './hooks/useRoomTodos';
+import { usePresence } from './hooks/usePresence';
+import { useActivity } from './hooks/useActivity';
 
 import Sidebar from './components/Sidebar';
 import AddTodoForm from './components/AddTodoForm';
 import StatsBar from './components/StatsBar';
 import TodoItem from './components/TodoItem';
 import CompletedSection from './components/CompletedSection';
+import UserSetupModal from './components/UserSetupModal';
+import ActivityPanel from './components/ActivityPanel';
 
 export default function TodoApp() {
   const todoInputRef = useRef(null);
@@ -45,6 +52,43 @@ export default function TodoApp() {
   const currentTheme = THEMES[theme] || THEMES['rose-gold'];
   const currentFont = FONTS[font] || FONTS.inter;
   const isDarkTheme = currentTheme.dark || false;
+  const isImageTheme = !!currentTheme.bgImage;
+
+  // ── User identity ──────────────────────────────────────────────────────────
+  const { username, color: userColor, ready: userReady, saveUser, needsSetup } = useUser();
+
+  // ── Rooms ──────────────────────────────────────────────────────────────────
+  const [activeRoom, setActiveRoom] = useState(null);
+  const [isActivityPanelOpen, setIsActivityPanelOpen] = useState(false);
+
+  const { rooms, loading: roomsLoading, error: roomsError, setError: setRoomsError, createRoom, joinRoom, leaveRoom, deleteRoom } = useRooms(username);
+  const roomTodos = useRoomTodos(activeRoom?.id, username);
+  const { onlineUsers } = usePresence(activeRoom?.id, username);
+  const { events: activityEvents } = useActivity(activeRoom?.id);
+
+  const inRoomMode = !!activeRoom;
+
+  // Effective todo data — room or local
+  const effectiveTodos       = inRoomMode ? roomTodos.todos       : todos;
+  const effectiveAddTodo     = inRoomMode ? roomTodos.addTodo     : addTodo;
+  const effectiveToggleTodo  = inRoomMode ? roomTodos.toggleTodo  : toggleTodo;
+  const effectiveDeleteTodo  = inRoomMode ? roomTodos.deleteTodo  : deleteTodo;
+  const effectiveEditTodo    = inRoomMode ? roomTodos.editTodo    : editTodo;
+  const effectiveNotes       = inRoomMode ? roomTodos.updateTodoNotes : updateTodoNotes;
+  const effectiveAddSubtask  = inRoomMode ? roomTodos.addSubtask  : addSubtask;
+  const effectiveToggleSub   = inRoomMode ? roomTodos.toggleSubtask : toggleSubtask;
+  const effectiveDeleteSub   = inRoomMode ? roomTodos.deleteSubtask : deleteSubtask;
+  const effectiveEditSub     = inRoomMode ? roomTodos.editSubtask   : editSubtask;
+
+  function handleSelectRoom(room) {
+    setActiveRoom(room);
+    setIsActivityPanelOpen(true);
+  }
+
+  function handleExitRoom() {
+    setActiveRoom(null);
+    setIsActivityPanelOpen(false);
+  }
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkTheme);
@@ -118,9 +162,9 @@ export default function TodoApp() {
   }
 
   // ── Derived filter + sort state ────────────────────────────────────────────
-  const allTags = ['all', ...new Set(todos.filter((t) => t.tag).map((t) => t.tag))];
+  const allTags = ['all', ...new Set(effectiveTodos.filter((t) => t.tag).map((t) => t.tag))];
 
-  const filteredTodos = todos.filter((t) => selectedTag === 'all' || t.tag === selectedTag);
+  const filteredTodos = effectiveTodos.filter((t) => selectedTag === 'all' || t.tag === selectedTag);
 
   const activeTodos = applySortTo(filteredTodos.filter((t) => !t.completed));
   const completedTodos = filteredTodos.filter((t) => t.completed);
@@ -213,20 +257,22 @@ export default function TodoApp() {
 
   // ── Shared todo item props ──────────────────────────────────────────────────
   const todoItemProps = {
-    onToggle: toggleTodo,
-    onDelete: deleteTodo,
-    onEdit: editTodo,
-    onAddSubtask: addSubtask,
-    onToggleSubtask: toggleSubtask,
-    onDeleteSubtask: deleteSubtask,
-    onEditSubtask: editSubtask,
-    onUpdateNotes: updateTodoNotes,
+    onToggle: effectiveToggleTodo,
+    onDelete: effectiveDeleteTodo,
+    onEdit: effectiveEditTodo,
+    onAddSubtask: effectiveAddSubtask,
+    onToggleSubtask: effectiveToggleSub,
+    onDeleteSubtask: effectiveDeleteSub,
+    onEditSubtask: effectiveEditSub,
+    onUpdateNotes: effectiveNotes,
     mode,
     isDarkTheme,
     confettiCanvasRef,
-    isBulkMode,
+    isBulkMode: inRoomMode ? false : isBulkMode,
     onSelect: toggleSelect,
-    canDrag,
+    canDrag: inRoomMode ? false : canDrag,
+    roomMembers: inRoomMode ? roomTodos.members : null,
+    onAssign: inRoomMode ? roomTodos.assignTodo : null,
   };
 
   const SORT_OPTIONS = [
@@ -238,14 +284,23 @@ export default function TodoApp() {
 
   return (
     <div
-      className={`min-h-screen ${currentTheme.bgImage ? 'bg-image' : currentTheme.bg} ${currentFont.class} transition-all duration-500 flex`}
-      style={currentTheme.bgImage ? {
-        backgroundImage: `url('${currentTheme.bgImage}')`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
-      } : undefined}
+      className={`h-screen overflow-hidden ${currentTheme.bgImage ? 'bg-image' : currentTheme.bg} ${currentFont.class} transition-all duration-500 flex`}
     >
+      {/* Username setup modal */}
+      {userReady && needsSetup && <UserSetupModal onSave={saveUser} isDarkTheme={isDarkTheme} />}
+
+      {currentTheme.bgImage && (
+        <div
+          className="fixed inset-0 -z-10"
+          style={{
+            backgroundImage: `url('${currentTheme.bgImage}')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundAttachment: 'fixed',
+            opacity: 0.7,
+          }}
+        />
+      )}
       {/* Full-screen confetti canvas */}
       <canvas
         ref={confettiCanvasRef}
@@ -305,12 +360,25 @@ export default function TodoApp() {
             onDeleteList={deleteList}
             onEditList={editList}
             isDarkTheme={isDarkTheme}
+            isImageTheme={isImageTheme}
+            rooms={rooms}
+            activeRoomId={activeRoom?.id}
+            onSelectRoom={handleSelectRoom}
+            onExitRoom={handleExitRoom}
+            onCreateRoom={createRoom}
+            onJoinRoom={joinRoom}
+            onLeaveRoom={async (id) => { await leaveRoom(id); if (activeRoom?.id === id) handleExitRoom(); }}
+            onDeleteRoom={async (id) => { await deleteRoom(id); if (activeRoom?.id === id) handleExitRoom(); }}
+            roomsLoading={roomsLoading}
+            roomsError={roomsError}
+            onClearRoomsError={() => setRoomsError(null)}
+            username={username}
           />
         </div>
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-y-auto min-w-0">
         <div className="px-30 py-10">
 
           {/* Header */}
@@ -318,14 +386,46 @@ export default function TodoApp() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 mb-6">
               <div>
                 <h1 className="text-5xl font-bold mb-2">
-                  <span className="gradient-text">Done and Dusted</span>
+                  <span className="gradient-text" style={isImageTheme ? { WebkitTextFillColor: currentTheme.titleColor } : undefined}>Done and Dusted</span>
                 </h1>
-                <p className={`text-base ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
-                  {formatDate()}
-                </p>
+                <div className="flex items-center gap-3">
+                  <p
+                    className={`text-base font-bold ${isDarkTheme ? 'text-white/80' : isImageTheme ? '' : 'text-gray-600'}`}
+                    style={isImageTheme ? { color: currentTheme.textColor } : undefined}
+                  >
+                    {formatDate()}
+                  </p>
+                  {inRoomMode && (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-black/20 dark:bg-white/10 dark:text-gray-200"
+                      style={isImageTheme ? { color: currentTheme.textColor } : undefined}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                      {activeRoom.name} · {activeRoom.code}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
+                {/* Activity panel toggle — only in room mode */}
+                {inRoomMode && (
+                  <button
+                    onClick={() => setIsActivityPanelOpen((o) => !o)}
+                    className={`glass rounded-xl px-3 py-2.5 shadow-lg flex items-center gap-2 hover:shadow-xl transition-all font-semibold text-sm ${
+                      isActivityPanelOpen
+                        ? 'bg-indigo-600 text-white'
+                        : isDarkTheme ? 'text-gray-200' : 'text-gray-700'
+                    }`}
+                  >
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                      <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+                    </svg>
+                    <span className="font-semibold text-sm">Activity</span>
+                  </button>
+                )}
+
                 {/* Layout toggle */}
                 <div className="glass rounded-xl p-1.5 shadow-lg">
                   <button onClick={() => setLayout('grid')} className={layoutBtnClass(layout === 'grid', isDarkTheme)} title="Grid view">
@@ -395,7 +495,7 @@ export default function TodoApp() {
                   {isSettingsOpen && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setIsSettingsOpen(false)} />
-                      <div className="dropdown-menu absolute right-0 mt-2 w-72 glass rounded-xl shadow-2xl z-20 border border-gray-200/50 dark:border-gray-700/50 p-4 space-y-5">
+                      <div className="dropdown-menu settings-panel absolute right-0 mt-2 w-72 glass rounded-xl shadow-2xl z-20 border border-gray-200/50 dark:border-gray-700/50 p-4 space-y-5">
 
                         {/* Mode */}
                         <div>
@@ -439,7 +539,7 @@ export default function TodoApp() {
                             </label>
                             <div className="flex flex-wrap gap-2">
                               {Object.entries(THEMES).filter(([, t]) => !!t.bgImage).map(([key, t]) => (
-                                <SwatchButton key={key} themeKey={key} t={t} active={theme === key} onSelect={setTheme} isDarkTheme={isDarkTheme} size={44} />
+                                <SwatchButton key={key} themeKey={key} t={t} active={theme === key} onSelect={setTheme} isDarkTheme={isDarkTheme} />
                               ))}
                             </div>
                           </div>
@@ -502,11 +602,39 @@ export default function TodoApp() {
               setSelectedTag={setSelectedTag}
               mode={mode}
               isDarkTheme={isDarkTheme}
+              isImageTheme={isImageTheme}
             />
           </div>
 
+          {/* Room list tabs */}
+          {inRoomMode && roomTodos.lists.length > 1 && (
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+              {roomTodos.lists.map((l) => (
+                <button
+                  key={l.id}
+                  onClick={() => roomTodos.setCurrentListId(l.id)}
+                  className={`px-4 py-2 text-sm font-semibold rounded-xl whitespace-nowrap transition-all ${
+                    roomTodos.currentListId === l.id
+                      ? 'bg-gray-700 text-white shadow-sm'
+                      : isDarkTheme || isImageTheme
+                      ? 'bg-white/10 text-white/80 hover:bg-white/20'
+                      : 'bg-white/70 text-gray-600 hover:bg-white/90'
+                  }`}
+                >
+                  {l.name}
+                </button>
+              ))}
+              <button
+                onClick={() => { const n = prompt('New list name'); if (n) roomTodos.addList(n); }}
+                className={`px-3 py-2 text-sm font-semibold rounded-xl transition-all ${isDarkTheme || isImageTheme ? 'bg-white/10 text-white/60 hover:bg-white/20' : 'bg-white/70 text-gray-500 hover:bg-white/90'}`}
+              >
+                + list
+              </button>
+            </div>
+          )}
+
           {/* Add todo form */}
-          <AddTodoForm ref={todoInputRef} onAdd={addTodo} mode={mode} isDarkTheme={isDarkTheme} />
+          <AddTodoForm ref={todoInputRef} onAdd={effectiveAddTodo} mode={mode} isDarkTheme={isDarkTheme} />
 
           {/* Cards section — inset 0.5 inch extra on each side */}
           <div className="px-12">
@@ -516,7 +644,7 @@ export default function TodoApp() {
             <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
               {/* Sort pills */}
               <div className="flex items-center gap-2">
-                <span className={`text-xs font-semibold uppercase tracking-wide ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
+                <span className={`text-xs font-semibold uppercase tracking-wide ${isDarkTheme ? 'text-gray-400' : isImageTheme ? 'text-white drop-shadow' : 'text-gray-500'}`}>
                   Sort
                 </span>
                 {SORT_OPTIONS.map(({ key, label }) => (
@@ -525,9 +653,11 @@ export default function TodoApp() {
                     onClick={() => setSortBy(key)}
                     className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                       sortBy === key
-                        ? 'bg-gray-700 text-white shadow-sm'
+                        ? 'bg-gray-700 text-white shadow-md'
                         : isDarkTheme
                         ? 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60'
+                        : isImageTheme
+                        ? 'bg-white/95 text-gray-800 hover:bg-white shadow-md backdrop-blur-sm'
                         : 'bg-white/70 text-gray-600 hover:bg-gray-100/80'
                     }`}
                   >
@@ -544,6 +674,8 @@ export default function TodoApp() {
                     ? 'bg-rose-500 text-white'
                     : isDarkTheme
                     ? 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60'
+                    : isImageTheme
+                    ? 'bg-white/95 text-gray-800 hover:bg-white shadow-md backdrop-blur-sm'
                     : 'bg-white/70 text-gray-600 hover:bg-gray-100/80'
                 }`}
               >
@@ -556,18 +688,22 @@ export default function TodoApp() {
           {activeTodos.length === 0 && completedTodos.length === 0 && (
             <div className="text-center py-20">
               <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-5 floating-btn ${
-                isDarkTheme ? 'bg-linear-to-br from-blue-900/30 to-purple-900/30' : 'bg-linear-to-br from-blue-100 to-purple-100'
+                isDarkTheme ? 'bg-white/10' : isImageTheme ? 'bg-white/40' : 'bg-black/6'
               }`}>
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600 dark:text-blue-400">
+                <svg
+                  width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                  style={isImageTheme ? { color: currentTheme.textColor } : undefined}
+                  className={isDarkTheme ? 'text-white/70' : isImageTheme ? '' : 'text-gray-500'}
+                >
                   <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
                 </svg>
               </div>
-              <h3 className={`text-2xl font-bold mb-2 ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>
+              <h3
+                className={`text-2xl font-bold mb-2 drop-shadow-lg ${isDarkTheme ? 'text-white' : isImageTheme ? '' : 'text-gray-900'}`}
+                style={isImageTheme ? { color: currentTheme.textColor } : undefined}
+              >
                 {selectedTag === 'all' ? 'No tasks yet' : `No tasks in #${selectedTag}`}
               </h3>
-              <p className={`text-base ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
-                Add your first task above — press N to jump to the input
-              </p>
             </div>
           )}
 
@@ -623,6 +759,16 @@ export default function TodoApp() {
 
         </div>
       </div>
+
+      {/* Activity panel */}
+      <ActivityPanel
+        isOpen={isActivityPanelOpen && inRoomMode}
+        onClose={() => setIsActivityPanelOpen(false)}
+        onlineUsers={onlineUsers}
+        events={activityEvents}
+        currentUsername={username}
+        isDarkTheme={isDarkTheme}
+      />
 
       {/* ── Bulk action toolbar ────────────────────────────────────────────── */}
       {isBulkMode && selectedIds.size > 0 && (
@@ -701,7 +847,7 @@ export default function TodoApp() {
           </span>
           <button
             onClick={undoDelete}
-            className="px-3 py-1 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-3 py-1 bg-gray-700 text-white text-sm font-bold rounded-lg hover:bg-gray-800 transition-colors"
           >
             Undo
           </button>
