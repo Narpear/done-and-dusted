@@ -25,7 +25,6 @@ CREATE TABLE rooms (
   code        VARCHAR(8)  UNIQUE NOT NULL,        -- e.g. "XK9P2M"
   name        VARCHAR(100) NOT NULL,
   owner       VARCHAR(50) NOT NULL,               -- username of creator
-  expires_at  TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '1 year'),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

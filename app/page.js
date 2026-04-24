@@ -36,6 +36,7 @@ export default function TodoApp() {
   const [isBulkMode, setIsBulkMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [isMoveOpen, setIsMoveOpen] = useState(false);
+  const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
 
   const {
     lists, currentListId, setCurrentListId,
@@ -593,7 +594,7 @@ export default function TodoApp() {
                             Signed in as <span className="font-semibold">{username}</span>
                           </div>
                           <button
-                            onClick={() => { logout(); setIsSettingsOpen(false); }}
+                            onClick={() => { logout(); setIsSettingsOpen(false); setConfirmDeleteAccount(false); }}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
                               isDarkTheme ? 'text-gray-300 hover:bg-gray-700/60' : 'text-gray-700 hover:bg-gray-100'
                             }`}
@@ -603,6 +604,46 @@ export default function TodoApp() {
                             </svg>
                             Log out
                           </button>
+
+                          {confirmDeleteAccount ? (
+                            <div className={`mt-2 p-3 rounded-lg ${isDarkTheme ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                              <p className={`text-xs font-medium mb-2 ${isDarkTheme ? 'text-gray-200' : 'text-gray-800'}`}>
+                                Delete your account? This frees up your username but won&apos;t remove your data.
+                              </p>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={async () => {
+                                    const { supabase } = await import('./lib/supabase');
+                                    await supabase.from('users').delete().eq('username', username);
+                                    logout();
+                                    setIsSettingsOpen(false);
+                                    setConfirmDeleteAccount(false);
+                                  }}
+                                  className="flex-1 px-2 py-1.5 text-xs font-bold rounded-lg bg-gray-600 text-white hover:bg-gray-700"
+                                >
+                                  Yes, delete
+                                </button>
+                                <button
+                                  onClick={() => setConfirmDeleteAccount(false)}
+                                  className={`flex-1 px-2 py-1.5 text-xs font-bold rounded-lg ${isDarkTheme ? 'bg-white/10 text-gray-300' : 'bg-gray-200 text-gray-700'}`}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmDeleteAccount(true)}
+                              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+                                isDarkTheme ? 'text-gray-500 hover:bg-gray-700/60 hover:text-gray-300' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+                              }`}
+                            >
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 3a4 4 0 110 8 4 4 0 010-8zM18 8l4 4-4 4"/>
+                              </svg>
+                              Delete account
+                            </button>
+                          )}
                         </div>
 
                       </div>

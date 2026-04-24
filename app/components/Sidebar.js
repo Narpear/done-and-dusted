@@ -181,7 +181,7 @@ export default function Sidebar({
             onBlur={() => setTimeout(() => { if (!newListName.trim()) setIsAddingList(false); }, 150)}
           />
           <div className="flex gap-2 mt-2">
-            <button type="submit" className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700">
+            <button type="submit" className={`flex-1 px-3 py-2 text-sm font-semibold rounded-lg ${isDarkTheme ? 'bg-white/10 text-gray-200 hover:bg-white/20' : 'bg-black/6 text-gray-700 hover:bg-black/10'}`}>
               Add
             </button>
             <button
@@ -198,11 +198,9 @@ export default function Sidebar({
       ) : (
         <button
           onClick={() => setIsAddingList(true)}
-          className={`w-full mt-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-sm ${
-            isDarkTheme ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
+          className={`w-full mt-3 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${isDarkTheme ? 'bg-white/10 text-gray-200 hover:bg-white/20' : 'bg-black/6 text-gray-700 hover:bg-black/10'}`}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M12 5v14M5 12h14" />
           </svg>
           New List

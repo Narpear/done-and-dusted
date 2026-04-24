@@ -15,15 +15,10 @@ export function useRooms(username) {
     if (!username) return;
     const { data } = await supabase
       .from('room_members')
-      .select('room_id, rooms(id, name, code, expires_at, owner)')
+      .select('room_id, rooms(id, name, code, owner)')
       .eq('username', username);
     if (data) {
-      const now = new Date();
-      setRooms(
-        data
-          .filter((m) => m.rooms && new Date(m.rooms.expires_at) > now)
-          .map((m) => m.rooms)
-      );
+      setRooms(data.filter((m) => m.rooms).map((m) => m.rooms));
     }
   }, [username]);
 
@@ -67,7 +62,6 @@ export function useRooms(username) {
         .from('rooms')
         .select()
         .eq('code', code.toUpperCase().trim())
-        .gt('expires_at', new Date().toISOString())
         .single();
       if (roomErr || !room) throw new Error('Room not found or expired');
 
