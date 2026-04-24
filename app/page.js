@@ -588,6 +588,23 @@ export default function TodoApp() {
                           <span className={`ml-auto text-xs px-1.5 py-0.5 rounded font-mono ${isDarkTheme ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>?</span>
                         </button>
 
+                        <div className={`border-t pt-3 mt-1 ${isDarkTheme ? 'border-gray-700' : 'border-gray-200'}`}>
+                          <div className={`text-xs mb-2 ${isDarkTheme ? 'text-gray-500' : 'text-gray-400'}`}>
+                            Signed in as <span className="font-semibold">{username}</span>
+                          </div>
+                          <button
+                            onClick={() => { logout(); setIsSettingsOpen(false); }}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+                              isDarkTheme ? 'text-gray-300 hover:bg-gray-700/60' : 'text-gray-700 hover:bg-gray-100'
+                            }`}
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+                            </svg>
+                            Log out
+                          </button>
+                        </div>
+
                       </div>
                     </>
                   )}
