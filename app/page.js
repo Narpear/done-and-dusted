@@ -55,7 +55,7 @@ export default function TodoApp() {
   const isImageTheme = !!currentTheme.bgImage;
 
   // ── User identity ──────────────────────────────────────────────────────────
-  const { username, color: userColor, ready: userReady, saveUser, needsSetup } = useUser();
+  const { username, color: userColor, ready: userReady, signup, login, logout, needsSetup } = useUser();
 
   // ── Rooms ──────────────────────────────────────────────────────────────────
   const [activeRoom, setActiveRoom] = useState(null);
@@ -287,7 +287,7 @@ export default function TodoApp() {
       className={`h-screen overflow-hidden ${currentTheme.bgImage ? 'bg-image' : currentTheme.bg} ${currentFont.class} transition-all duration-500 flex`}
     >
       {/* Username setup modal */}
-      {userReady && needsSetup && <UserSetupModal onSave={saveUser} isDarkTheme={isDarkTheme} />}
+      {userReady && needsSetup && <UserSetupModal onSignup={signup} onLogin={login} isDarkTheme={isDarkTheme} />}
 
       {currentTheme.bgImage && (
         <div

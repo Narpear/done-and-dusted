@@ -7,6 +7,17 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ------------------------------------------------------------
+-- Users  (username-based auth, no Supabase Auth)
+-- Password is SHA-256(username.toLowerCase() + ':' + password)
+-- ------------------------------------------------------------
+CREATE TABLE users (
+  username      VARCHAR(50)  PRIMARY KEY,
+  password_hash VARCHAR(64)  NOT NULL,
+  color         VARCHAR(20)  NOT NULL DEFAULT '#6366f1',
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+-- ------------------------------------------------------------
 -- Rooms
 -- ------------------------------------------------------------
 CREATE TABLE rooms (
@@ -138,6 +149,7 @@ CREATE INDEX ON room_presence(last_ping_at);  -- fast stale-cleanup query
 -- This app uses username-based identity (no Supabase Auth),
 -- so we open all tables to the anon key with permissive policies.
 -- ------------------------------------------------------------
+ALTER TABLE users          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rooms          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE room_members   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE room_lists     ENABLE ROW LEVEL SECURITY;
@@ -146,6 +158,7 @@ ALTER TABLE room_reactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE room_activity  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE room_presence  ENABLE ROW LEVEL SECURITY;
 
+CREATE POLICY "open" ON users          FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "open" ON rooms          FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "open" ON room_members   FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "open" ON room_lists     FOR ALL USING (true) WITH CHECK (true);
