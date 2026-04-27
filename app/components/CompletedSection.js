@@ -25,10 +25,10 @@ export default function CompletedSection({
     <div className="mt-6">
       <button
         onClick={() => setIsOpen((o) => !o)}
-        className={`flex items-center gap-2 text-sm font-semibold mb-3 px-3 py-2 rounded-lg transition-colors ${
+        className={`flex items-center gap-2 text-sm font-semibold mb-3 px-3 py-2 rounded-lg transition-colors backdrop-blur-md border ${
           isDarkTheme
-            ? 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-300'
-            : 'text-gray-500 hover:bg-gray-100/60 hover:text-gray-700'
+            ? 'text-gray-300 bg-gray-800/40 border-gray-700/50 hover:bg-gray-700/50 hover:text-gray-200'
+            : 'text-gray-600 bg-white/30 border-gray-200/60 hover:bg-white/50 hover:text-gray-800'
         }`}
       >
         <svg
