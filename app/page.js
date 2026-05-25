@@ -500,7 +500,7 @@ export default function TodoApp() {
                 {isSettingsOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setIsSettingsOpen(false)} />
-                    <div className={`dropdown-menu settings-panel fixed left-72 bottom-4 w-80 rounded-xl shadow-2xl z-20 border backdrop-blur-2xl overflow-y-auto max-h-[calc(100vh-5rem)] ${isDarkTheme ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}>
+                    <div className={`dropdown-menu settings-panel fixed left-2 bottom-26 w-68 rounded-xl shadow-2xl z-20 border backdrop-blur-2xl overflow-y-auto max-h-[calc(100vh-8rem)] ${isDarkTheme ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}>
 
                         {/* ── Appearance ── */}
                         <button

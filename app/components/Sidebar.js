@@ -230,25 +230,21 @@ export default function Sidebar({
         isDarkTheme={isDarkTheme}
       />
 
-      {/* Calendar nav */}
-      <div className="mt-4">
-        <div className={`h-px mb-4 ${isDarkTheme ? 'bg-white/10' : 'bg-black/8'}`} />
-        <button
-          onClick={onSelectCalendar}
-          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-            activeView === 'calendar' ? activeBg : hoverBg
-          }`}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
-          </svg>
-          Calendar
-        </button>
-      </div>
     </div>{/* end scrollable */}
 
-    {/* Pinned Settings footer */}
-    <div className={`shrink-0 border-t px-4 py-3 ${isDarkTheme ? 'border-white/10' : 'border-black/8'}`}>
+    {/* Pinned footer — Calendar + Settings */}
+    <div className={`shrink-0 border-t px-4 pt-2 pb-3 flex flex-col gap-0.5 ${isDarkTheme ? 'border-white/10' : 'border-black/8'}`}>
+      <button
+        onClick={onSelectCalendar}
+        className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+          activeView === 'calendar' ? activeBg : hoverBg
+        }`}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+        </svg>
+        Calendar
+      </button>
       <button
         onClick={onOpenSettings}
         className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
