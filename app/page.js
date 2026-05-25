@@ -103,8 +103,8 @@ export default function TodoApp() {
     const cards = cardsContainerRef.current.querySelectorAll('.glass');
     if (!cards.length) return;
     gsap.fromTo(cards,
-      { y: 24, opacity: 0, scale: 0.97 },
-      { y: 0, opacity: 1, scale: 1, duration: 0.4, stagger: 0.06, ease: 'power2.out', clearProps: 'all' }
+      { y: 60, opacity: 0, scale: 0.88 },
+      { y: 0, opacity: 1, scale: 1, duration: 0.55, stagger: 0.09, ease: 'power3.out', overwrite: true, clearProps: 'transform,opacity' }
     );
   }, { scope: cardsContainerRef, dependencies: [currentListId, activeRoom?.id] });
 
@@ -512,8 +512,8 @@ export default function TodoApp() {
                 {/* Settings panel — triggered from sidebar footer */}
                 {isSettingsOpen && (
                   <>
-                    <div className="fixed inset-0 z-10" onClick={() => setIsSettingsOpen(false)} />
-                    <div className={`dropdown-menu settings-panel fixed left-2 bottom-26 w-68 rounded-xl shadow-2xl z-20 border backdrop-blur-2xl overflow-y-auto max-h-[calc(100vh-8rem)] ${isDarkTheme ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsSettingsOpen(false)} />
+                    <div className={`dropdown-menu settings-panel fixed left-3 bottom-28 w-66 rounded-xl shadow-2xl z-50 border backdrop-blur-2xl overflow-y-auto max-h-[calc(100vh-8rem)] ${isDarkTheme ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}>
 
                         {/* ── Appearance ── */}
                         <button

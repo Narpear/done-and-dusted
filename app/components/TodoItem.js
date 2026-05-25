@@ -83,17 +83,14 @@ export default function TodoItem({
   useEffect(() => {
     if (!cardRef.current) return;
     if (todo.completed && !prevCompletedRef.current) {
-      // just completed — satisfying shrink + fade
-      gsap.fromTo(cardRef.current,
-        { scale: 1 },
-        { scale: 0.97, duration: 0.12, ease: 'power2.in',
-          onComplete: () => gsap.to(cardRef.current, { scale: 1, duration: 0.2, ease: 'back.out(2)', clearProps: 'scale' }) }
-      );
+      gsap.timeline()
+        .to(cardRef.current, { scale: 0.93, duration: 0.1, ease: 'power2.in', overwrite: true })
+        .to(cardRef.current, { scale: 1.04, duration: 0.15, ease: 'power2.out' })
+        .to(cardRef.current, { scale: 1, duration: 0.2, ease: 'back.out(3)', clearProps: 'transform' });
     } else if (!todo.completed && prevCompletedRef.current) {
-      // uncompleted — pop back
       gsap.fromTo(cardRef.current,
-        { scale: 0.97 },
-        { scale: 1, duration: 0.25, ease: 'back.out(2.5)', clearProps: 'scale' }
+        { scale: 0.95 },
+        { scale: 1, duration: 0.3, ease: 'back.out(3)', overwrite: true, clearProps: 'transform' }
       );
     }
     prevCompletedRef.current = todo.completed;

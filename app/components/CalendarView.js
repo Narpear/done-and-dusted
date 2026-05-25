@@ -139,8 +139,8 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
   const text        = isDarkTheme ? 'text-white'   : 'text-gray-900';
   const muted       = isDarkTheme ? 'text-gray-400' : 'text-gray-500';
   const cellBg      = isDarkTheme
-    ? 'bg-gray-800/30 hover:bg-gray-700/40'
-    : 'bg-white/20 hover:bg-white/40';
+    ? 'bg-gray-800/45 hover:bg-gray-700/55'
+    : 'bg-white/38 hover:bg-white/55';
   const glassBg     = isDarkTheme
     ? 'bg-gray-900/50 backdrop-blur-xl border-gray-700/40'
     : 'bg-white/25 backdrop-blur-xl border-white/30';
@@ -281,9 +281,9 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                   onClick={() => setSelectedDay(day === selectedDay ? null : day)}
                   className={`rounded-xl p-1 cursor-pointer border transition-all flex flex-col overflow-hidden ${
                     isSelected
-                      ? isDarkTheme ? 'border-white/30 bg-white/12' : 'border-black/15 bg-white/60'
+                      ? isDarkTheme ? 'border-white/40 bg-white/20' : 'border-black/20 bg-white/75'
                       : isToday
-                      ? isDarkTheme ? 'bg-white/8 border-white/15' : 'bg-white/50 border-black/8'
+                      ? isDarkTheme ? 'bg-white/14 border-white/25' : 'bg-white/65 border-black/12'
                       : `${cellBg} border-transparent`
                   }`}
                 >
