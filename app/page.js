@@ -43,6 +43,8 @@ export default function TodoApp() {
   const [isMoveOpen, setIsMoveOpen] = useState(false);
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
   const [openSection, setOpenSection] = useState(null);
+  const [showUsernameReveal, setShowUsernameReveal] = useState(false);
+  const [usernameConfirmInput, setUsernameConfirmInput] = useState('');
   function toggleSection(s) { setOpenSection((p) => p === s ? null : s); }
 
   const {
@@ -357,7 +359,7 @@ export default function TodoApp() {
             </div>
             <button
               onClick={() => setIsShortcutsOpen(false)}
-              className="mt-5 w-full py-2 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+              className={`mt-5 w-full py-2 text-sm font-semibold rounded-lg transition-colors ${isDarkTheme ? 'bg-white/10 text-gray-200 hover:bg-white/20' : 'bg-black/8 text-gray-700 hover:bg-black/12'}`}
             >
               Close
             </button>
@@ -509,135 +511,7 @@ export default function TodoApp() {
                   )}
                 </div>
 
-                {/* Settings panel — triggered from sidebar footer */}
-                {isSettingsOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setIsSettingsOpen(false)} />
-                    <div className={`dropdown-menu settings-panel fixed left-3 bottom-28 w-66 rounded-xl shadow-2xl z-50 border backdrop-blur-2xl overflow-y-auto max-h-[calc(100vh-8rem)] ${isDarkTheme ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}>
-
-                        {/* ── Appearance ── */}
-                        <button
-                          onClick={() => toggleSection('appearance')}
-                          className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold transition-colors ${isDarkTheme ? 'text-gray-200 hover:bg-gray-700/50' : 'text-gray-700 hover:bg-gray-50'}`}
-                        >
-                          <span className="flex items-center gap-2">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
-                            Appearance
-                          </span>
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`transition-transform ${openSection === 'appearance' ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6"/></svg>
-                        </button>
-                        {openSection === 'appearance' && (
-                          <div className={`px-3 pb-3 space-y-3 border-t ${isDarkTheme ? 'border-gray-700/50' : 'border-gray-100'}`}>
-
-                            {/* Mode */}
-                            <div className="pt-2">
-                              <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>Mode</label>
-                              <div className={`flex rounded-lg overflow-hidden border ${isDarkTheme ? 'border-gray-700' : 'border-gray-200'}`}>
-                                {['basic', 'advanced'].map((m) => (
-                                  <button key={m} onClick={() => setMode(m)}
-                                    className={`flex-1 py-1.5 text-xs font-semibold capitalize transition-colors ${mode === m ? 'bg-gray-700 text-white' : isDarkTheme ? 'text-gray-300 hover:bg-gray-700/60' : 'text-gray-700 hover:bg-gray-50'}`}>
-                                    {m}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Theme */}
-                            <div>
-                              <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>Color Gradients</label>
-                              <div className="flex flex-wrap gap-1.5">
-                                {Object.entries(THEMES).filter(([, t]) => !t.bgImage).map(([key, t]) => (
-                                  <SwatchButton key={key} themeKey={key} t={t} active={theme === key} onSelect={setTheme} isDarkTheme={isDarkTheme} size={22} />
-                                ))}
-                              </div>
-                            </div>
-                            <div>
-                              <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>Backdrops</label>
-                              <div className="flex flex-wrap gap-1.5">
-                                {Object.entries(THEMES).filter(([, t]) => !!t.bgImage).map(([key, t]) => (
-                                  <SwatchButton key={key} themeKey={key} t={t} active={theme === key} onSelect={setTheme} isDarkTheme={isDarkTheme} size={22} />
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Font */}
-                            <div>
-                              <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>Font</label>
-                              <select
-                                value={font}
-                                onChange={(e) => setFont(e.target.value)}
-                                style={{ fontFamily: currentFont.family }}
-                                className={`w-full px-2.5 py-1.5 text-xs rounded-lg border focus:outline-none cursor-pointer ${isDarkTheme ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-white border-gray-200 text-gray-800'}`}
-                              >
-                                {Object.entries(FONTS).map(([key, f]) => (
-                                  <option key={key} value={key} style={{ fontFamily: f.family }}>{f.name}</option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* ── Account ── */}
-                        <button
-                          onClick={() => toggleSection('account')}
-                          className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold transition-colors border-t ${isDarkTheme ? 'text-gray-200 hover:bg-gray-700/50 border-gray-700/50' : 'text-gray-700 hover:bg-gray-50 border-gray-100'}`}
-                        >
-                          <span className="flex items-center gap-2">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                            Account
-                            <span className={`text-[10px] font-normal ${isDarkTheme ? 'text-gray-500' : 'text-gray-400'}`}>{username}</span>
-                          </span>
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`transition-transform ${openSection === 'account' ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6"/></svg>
-                        </button>
-                        {openSection === 'account' && (
-                          <div className={`border-t ${isDarkTheme ? 'border-gray-700/50' : 'border-gray-100'}`}>
-                            <button
-                              onClick={() => { logout(); setIsSettingsOpen(false); setConfirmDeleteAccount(false); }}
-                              className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold transition-colors ${isDarkTheme ? 'text-gray-300 hover:bg-gray-700/50' : 'text-gray-700 hover:bg-gray-50'}`}
-                            >
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-                              Log out
-                            </button>
-                            {confirmDeleteAccount ? (
-                              <div className={`mx-3 mb-2.5 p-2.5 rounded-lg ${isDarkTheme ? 'bg-gray-800' : 'bg-gray-100'}`}>
-                                <p className={`text-[11px] font-medium mb-2 ${isDarkTheme ? 'text-gray-200' : 'text-gray-800'}`}>Delete your account? Your username becomes available again.</p>
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={async () => {
-                                      const { supabase } = await import('./lib/supabase');
-                                      await supabase.from('users').delete().eq('username', username);
-                                      logout(); setIsSettingsOpen(false); setConfirmDeleteAccount(false);
-                                    }}
-                                    className="flex-1 px-2 py-1 text-[11px] font-bold rounded-lg bg-gray-600 text-white hover:bg-gray-700"
-                                  >Yes, delete</button>
-                                  <button onClick={() => setConfirmDeleteAccount(false)} className={`flex-1 px-2 py-1 text-[11px] font-bold rounded-lg ${isDarkTheme ? 'bg-white/10 text-gray-300' : 'bg-gray-200 text-gray-700'}`}>Cancel</button>
-                                </div>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => setConfirmDeleteAccount(true)}
-                                className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold transition-colors ${isDarkTheme ? 'text-gray-500 hover:bg-gray-700/50 hover:text-gray-300' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
-                              >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 3a4 4 0 110 8 4 4 0 010-8zM18 8l4 4-4 4"/></svg>
-                                Delete account
-                              </button>
-                            )}
-                          </div>
-                        )}
-
-                        {/* ── Shortcuts ── */}
-                        <button
-                          onClick={() => { setIsSettingsOpen(false); setIsShortcutsOpen(true); }}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold transition-colors border-t ${isDarkTheme ? 'text-gray-300 hover:bg-gray-700/50 border-gray-700/50' : 'text-gray-700 hover:bg-gray-50 border-gray-100'}`}
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M6 11h.01M10 11h.01M14 11h.01M18 11h.01M8 15h8" strokeLinecap="round"/></svg>
-                          Keyboard Shortcuts
-                          <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded font-mono ${isDarkTheme ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>?</span>
-                        </button>
-
-                      </div>
-                    </>
-                  )}
+                {/* Settings panel rendered as fixed overlay — see below */}
               </div>
             </div>
 
@@ -881,15 +755,139 @@ export default function TodoApp() {
           isDarkTheme ? 'bg-gray-800/70 text-gray-300 hover:bg-gray-700/80 hover:text-gray-100' : 'bg-white/70 text-gray-500 hover:bg-white/90 hover:text-gray-700'
         }`}
         style={{
-          bottom: '1.5rem',
+          bottom: activeView === 'calendar' ? '90%' : '1.5rem',
           left: isSidebarOpen ? '19.5rem' : '1rem',
-          transition: 'left 0.3s ease, transform 0.15s ease',
+          transition: 'left 0.3s ease, bottom 0.3s ease, transform 0.15s ease',
         }}
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d={isSidebarOpen ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6'} />
         </svg>
       </button>
+
+      {/* ── Settings panel — fixed overlay, works in all views ─────────────── */}
+      {isSettingsOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIsSettingsOpen(false)} />
+          <div className={`fixed left-3 bottom-28 w-66 rounded-xl shadow-2xl z-50 border backdrop-blur-2xl overflow-y-auto max-h-[calc(100vh-8rem)] ${isDarkTheme ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}>
+
+            {/* Appearance */}
+            <button onClick={() => toggleSection('appearance')} className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold transition-colors ${isDarkTheme ? 'text-gray-200 hover:bg-gray-700/50' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <span className="flex items-center gap-2">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+                Appearance
+              </span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`transition-transform ${openSection === 'appearance' ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            {openSection === 'appearance' && (
+              <div className={`px-3 pb-3 space-y-3 border-t ${isDarkTheme ? 'border-gray-700/50' : 'border-gray-100'}`}>
+                <div className="pt-2">
+                  <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>Mode</label>
+                  <div className={`flex rounded-lg overflow-hidden border ${isDarkTheme ? 'border-gray-700' : 'border-gray-200'}`}>
+                    {['basic', 'advanced'].map((m) => (
+                      <button key={m} onClick={() => setMode(m)} className={`flex-1 py-1.5 text-xs font-semibold capitalize transition-colors ${mode === m ? 'bg-gray-700 text-white' : isDarkTheme ? 'text-gray-300 hover:bg-gray-700/60' : 'text-gray-700 hover:bg-gray-50'}`}>{m}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>Color Gradients</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {Object.entries(THEMES).filter(([, t]) => !t.bgImage).map(([key, t]) => (
+                      <SwatchButton key={key} themeKey={key} t={t} active={theme === key} onSelect={setTheme} isDarkTheme={isDarkTheme} size={22} />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>Backdrops</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {Object.entries(THEMES).filter(([, t]) => !!t.bgImage).map(([key, t]) => (
+                      <SwatchButton key={key} themeKey={key} t={t} active={theme === key} onSelect={setTheme} isDarkTheme={isDarkTheme} size={22} />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>Font</label>
+                  <select value={font} onChange={(e) => setFont(e.target.value)} style={{ fontFamily: currentFont.family }} className={`w-full px-2.5 py-1.5 text-xs rounded-lg border focus:outline-none cursor-pointer ${isDarkTheme ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-white border-gray-200 text-gray-800'}`}>
+                    {Object.entries(FONTS).map(([key, f]) => (
+                      <option key={key} value={key} style={{ fontFamily: f.family }}>{f.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Account */}
+            <button onClick={() => toggleSection('account')} className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold transition-colors border-t ${isDarkTheme ? 'text-gray-200 hover:bg-gray-700/50 border-gray-700/50' : 'text-gray-700 hover:bg-gray-50 border-gray-100'}`}>
+              <span className="flex items-center gap-2">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Account
+                <span className={`text-[10px] font-normal ${isDarkTheme ? 'text-gray-500' : 'text-gray-400'}`}>{username}</span>
+              </span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`transition-transform ${openSection === 'account' ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            {openSection === 'account' && (
+              <div className={`border-t ${isDarkTheme ? 'border-gray-700/50' : 'border-gray-100'}`}>
+                <button onClick={() => { logout(); setIsSettingsOpen(false); setConfirmDeleteAccount(false); }} className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold transition-colors ${isDarkTheme ? 'text-gray-300 hover:bg-gray-700/50' : 'text-gray-700 hover:bg-gray-50'}`}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                  Log out
+                </button>
+
+                {/* Username reveal */}
+                {showUsernameReveal ? (
+                  <div className={`mx-3 mb-2 p-2.5 rounded-lg ${isDarkTheme ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                    {usernameConfirmInput === username ? (
+                      <div className="space-y-1.5">
+                        <p className={`text-[10px] font-semibold uppercase tracking-wide ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>Your username</p>
+                        <p className={`text-sm font-bold font-mono ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>{username}</p>
+                        <button onClick={() => { setShowUsernameReveal(false); setUsernameConfirmInput(''); }} className={`text-[11px] ${isDarkTheme ? 'text-gray-500' : 'text-gray-400'} hover:text-red-400 transition-colors`}>Hide</button>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <p className={`text-[11px] font-medium ${isDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Type your username to confirm:</p>
+                        <input
+                          autoFocus
+                          value={usernameConfirmInput}
+                          onChange={e => setUsernameConfirmInput(e.target.value)}
+                          placeholder="username…"
+                          className={`w-full px-2 py-1 text-xs rounded-lg border focus:outline-none ${isDarkTheme ? 'bg-gray-700 border-gray-600 text-white placeholder:text-gray-500' : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-400'}`}
+                        />
+                        <button onClick={() => { setShowUsernameReveal(false); setUsernameConfirmInput(''); }} className={`text-[11px] ${isDarkTheme ? 'text-gray-500' : 'text-gray-400'} hover:text-red-400 transition-colors`}>Cancel</button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button onClick={() => setShowUsernameReveal(true)} className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold transition-colors ${isDarkTheme ? 'text-gray-500 hover:bg-gray-700/50 hover:text-gray-300' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    View credentials
+                  </button>
+                )}
+
+                {confirmDeleteAccount ? (
+                  <div className={`mx-3 mb-2.5 p-2.5 rounded-lg ${isDarkTheme ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                    <p className={`text-[11px] font-medium mb-2 ${isDarkTheme ? 'text-gray-200' : 'text-gray-800'}`}>Delete your account? Your username becomes available again.</p>
+                    <div className="flex gap-2">
+                      <button onClick={async () => { const { supabase } = await import('./lib/supabase'); await supabase.from('users').delete().eq('username', username); logout(); setIsSettingsOpen(false); setConfirmDeleteAccount(false); }} className="flex-1 px-2 py-1 text-[11px] font-bold rounded-lg bg-gray-600 text-white hover:bg-gray-700">Yes, delete</button>
+                      <button onClick={() => setConfirmDeleteAccount(false)} className={`flex-1 px-2 py-1 text-[11px] font-bold rounded-lg ${isDarkTheme ? 'bg-white/10 text-gray-300' : 'bg-gray-200 text-gray-700'}`}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => setConfirmDeleteAccount(true)} className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold transition-colors ${isDarkTheme ? 'text-gray-500 hover:bg-gray-700/50 hover:text-gray-300' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 3a4 4 0 110 8 4 4 0 010-8zM18 8l4 4-4 4"/></svg>
+                    Delete account
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Keyboard Shortcuts */}
+            <button onClick={() => { setIsSettingsOpen(false); setIsShortcutsOpen(true); }} className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold transition-colors border-t ${isDarkTheme ? 'text-gray-300 hover:bg-gray-700/50 border-gray-700/50' : 'text-gray-700 hover:bg-gray-50 border-gray-100'}`}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M6 11h.01M10 11h.01M14 11h.01M18 11h.01M8 15h8" strokeLinecap="round"/></svg>
+              Keyboard Shortcuts
+              <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded font-mono ${isDarkTheme ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>?</span>
+            </button>
+          </div>
+        </>
+      )}
 
       {/* ── Undo delete toast ──────────────────────────────────────────────── */}
       {deletedTodo && (

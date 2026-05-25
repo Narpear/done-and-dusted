@@ -136,11 +136,11 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
 
   // ── Theme tokens ───────────────────────────────────────────────────────────
   const border      = isDarkTheme ? 'border-gray-700/50' : 'border-white/30';
-  const text        = isDarkTheme ? 'text-white'   : 'text-gray-900';
-  const muted       = isDarkTheme ? 'text-gray-400' : 'text-gray-500';
+  const text        = isDarkTheme ? 'text-white'     : 'text-gray-800';
+  const muted       = isDarkTheme ? 'text-gray-300'  : 'text-gray-600';
   const cellBg      = isDarkTheme
-    ? 'bg-gray-800/45 hover:bg-gray-700/55'
-    : 'bg-white/38 hover:bg-white/55';
+    ? 'bg-gray-800/60 hover:bg-gray-700/70'
+    : 'bg-white/62 hover:bg-white/75';
   const glassBg     = isDarkTheme
     ? 'bg-gray-900/50 backdrop-blur-xl border-gray-700/40'
     : 'bg-white/25 backdrop-blur-xl border-white/30';
@@ -222,8 +222,17 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
           </button>
         </div>
 
-        {/* Right — panel toggle + add event */}
+        {/* Right — add event + panel toggle */}
         <div className="flex-1 flex items-center justify-end gap-2">
+          {/* Add event — semi-transparent glass */}
+          <button
+            onClick={() => openNew(selectedDay)}
+            className={`glass rounded-xl px-3 py-1.5 text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all hover:shadow-md opacity-70 hover:opacity-90 ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Add event
+          </button>
+
           {/* Upcoming panel toggle */}
           <button
             onClick={() => setShowPanel(p => !p)}
@@ -237,15 +246,6 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
               <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
             </svg>
             Upcoming
-          </button>
-
-          {/* Add event — semi-transparent glass */}
-          <button
-            onClick={() => openNew(selectedDay)}
-            className={`glass rounded-xl px-3 py-1.5 text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all hover:shadow-md opacity-70 hover:opacity-90 ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
-            Add event
           </button>
         </div>
       </div>
@@ -281,9 +281,9 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                   onClick={() => setSelectedDay(day === selectedDay ? null : day)}
                   className={`rounded-xl p-1 cursor-pointer border transition-all flex flex-col overflow-hidden ${
                     isSelected
-                      ? isDarkTheme ? 'border-white/40 bg-white/20' : 'border-black/20 bg-white/75'
+                      ? isDarkTheme ? 'border-white/50 bg-white/25' : 'border-black/25 bg-white/88'
                       : isToday
-                      ? isDarkTheme ? 'bg-white/14 border-white/25' : 'bg-white/65 border-black/12'
+                      ? isDarkTheme ? 'bg-white/20 border-white/35' : 'bg-white/88 border-black/18'
                       : `${cellBg} border-transparent`
                   }`}
                 >
