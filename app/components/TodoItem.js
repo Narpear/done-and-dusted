@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import gsap from 'gsap';
 import { useVoiceInput } from '../hooks/useVoiceInput';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
@@ -40,7 +41,8 @@ export default function TodoItem({
   const [subtaskText, setSubtaskText] = useState('');
   const [editText, setEditText] = useState(todo.text);
   const [notesText, setNotesText] = useState(todo.notes || '');
-  const prevPctRef = useRef(calcProgressPct(todo));
+  const prevPctRef  = useRef(calcProgressPct(todo));
+  const cardRef     = useRef(null);
 
   const { isRecording: isSubtaskRecording, toggle: toggleSubtaskVoice } = useVoiceInput(
     (transcript) => setSubtaskText(transcript)
@@ -76,6 +78,27 @@ export default function TodoItem({
     prevPctRef.current = pct;
   }, [pct, confettiCanvasRef]);
 
+  // Completion pulse
+  const prevCompletedRef = useRef(todo.completed);
+  useEffect(() => {
+    if (!cardRef.current) return;
+    if (todo.completed && !prevCompletedRef.current) {
+      // just completed — satisfying shrink + fade
+      gsap.fromTo(cardRef.current,
+        { scale: 1 },
+        { scale: 0.97, duration: 0.12, ease: 'power2.in',
+          onComplete: () => gsap.to(cardRef.current, { scale: 1, duration: 0.2, ease: 'back.out(2)', clearProps: 'scale' }) }
+      );
+    } else if (!todo.completed && prevCompletedRef.current) {
+      // uncompleted — pop back
+      gsap.fromTo(cardRef.current,
+        { scale: 0.97 },
+        { scale: 1, duration: 0.25, ease: 'back.out(2.5)', clearProps: 'scale' }
+      );
+    }
+    prevCompletedRef.current = todo.completed;
+  }, [todo.completed]);
+
   function handleAddSubtask(e) {
     e.preventDefault();
     if (!subtaskText.trim()) return;
@@ -105,6 +128,7 @@ export default function TodoItem({
   return (
     <div ref={setNodeRef} style={style}>
       <div
+        ref={cardRef}
         className={`group relative card-hover glass rounded-xl border border-black/8 dark:border-white/10 border-l-4 ${cardBorder} ${cardBg} shadow-md ${
           isDragging ? 'opacity-50 scale-105 z-50 shadow-2xl' : ''
         } ${todo.completed ? 'opacity-60' : ''} ${

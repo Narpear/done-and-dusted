@@ -1,6 +1,8 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, verticalListSortingStrategy } from '@dnd-kit/sortable';
 
@@ -28,6 +30,7 @@ export default function TodoApp() {
   const confettiCanvasRef = useRef(null);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const cardsContainerRef = useRef(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
@@ -94,6 +97,16 @@ export default function TodoApp() {
     setActiveRoom(null);
     setIsActivityPanelOpen(false);
   }
+
+  useGSAP(() => {
+    if (!cardsContainerRef.current) return;
+    const cards = cardsContainerRef.current.querySelectorAll('.glass');
+    if (!cards.length) return;
+    gsap.fromTo(cards,
+      { y: 24, opacity: 0, scale: 0.97 },
+      { y: 0, opacity: 1, scale: 1, duration: 0.4, stagger: 0.06, ease: 'power2.out', clearProps: 'all' }
+    );
+  }, { scope: cardsContainerRef, dependencies: [currentListId, activeRoom?.id] });
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkTheme);
@@ -670,7 +683,7 @@ export default function TodoApp() {
           <AddTodoForm ref={todoInputRef} onAdd={effectiveAddTodo} mode={mode} isDarkTheme={isDarkTheme} />
 
           {/* Cards section — inset 0.5 inch extra on each side */}
-          <div className="px-12">
+          <div className="px-12" ref={cardsContainerRef}>
 
           {/* Sort + bulk controls */}
           {(activeTodos.length > 0 || completedTodos.length > 0) && (
