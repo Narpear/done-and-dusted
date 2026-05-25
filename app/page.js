@@ -21,6 +21,7 @@ import TodoItem from './components/TodoItem';
 import CompletedSection from './components/CompletedSection';
 import UserSetupModal from './components/UserSetupModal';
 import ActivityPanel from './components/ActivityPanel';
+import CalendarView from './components/CalendarView';
 
 export default function TodoApp() {
   const todoInputRef = useRef(null);
@@ -31,6 +32,7 @@ export default function TodoApp() {
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [selectedTag, setSelectedTag] = useState('all');
+  const [activeView, setActiveView] = useState('tasks'); // 'tasks' | 'calendar'
 
   // Bulk selection
   const [isBulkMode, setIsBulkMode] = useState(false);
@@ -352,13 +354,13 @@ export default function TodoApp() {
 
       {/* Sidebar */}
       <div className={`${isSidebarOpen ? 'w-72' : 'w-0'} transition-all duration-300 shrink-0 overflow-hidden`}>
-        <div className={`h-full border-r overflow-y-auto backdrop-blur-xl ${
+        <div className={`h-full border-r overflow-hidden backdrop-blur-xl ${
           isDarkTheme ? 'bg-gray-900/70 border-gray-700/30' : 'bg-white/60 border-white/40'
         }`}>
           <Sidebar
             lists={lists}
             currentListId={currentListId}
-            setCurrentListId={setCurrentListId}
+            setCurrentListId={(id) => { setCurrentListId(id); setActiveView('tasks'); }}
             onAddList={addList}
             onDeleteList={deleteList}
             onEditList={editList}
@@ -366,7 +368,7 @@ export default function TodoApp() {
             isImageTheme={isImageTheme}
             rooms={rooms}
             activeRoomId={activeRoom?.id}
-            onSelectRoom={handleSelectRoom}
+            onSelectRoom={(room) => { handleSelectRoom(room); setActiveView('tasks'); }}
             onExitRoom={handleExitRoom}
             onCreateRoom={createRoom}
             onJoinRoom={joinRoom}
@@ -376,12 +378,23 @@ export default function TodoApp() {
             roomsError={roomsError}
             onClearRoomsError={() => setRoomsError(null)}
             username={username}
+            activeView={activeView}
+            onSelectCalendar={() => { setActiveView('calendar'); handleExitRoom(); }}
+            onOpenSettings={() => setIsSettingsOpen((o) => !o)}
           />
         </div>
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-y-auto min-w-0">
+      <div className={`flex-1 min-w-0 ${activeView === 'calendar' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+        {activeView === 'calendar' ? (
+          <CalendarView
+            username={username}
+            isDarkTheme={isDarkTheme}
+            isImageTheme={isImageTheme}
+            currentTheme={currentTheme}
+          />
+        ) : (
         <div className="px-30 py-10">
 
           {/* Header */}
@@ -483,22 +496,11 @@ export default function TodoApp() {
                   )}
                 </div>
 
-                {/* Settings */}
-                <div className="relative">
-                  <button
-                    onClick={() => setIsSettingsOpen((o) => !o)}
-                    className={`glass rounded-xl px-3 py-2.5 shadow-lg flex items-center gap-2 hover:shadow-xl transition-all ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}
-                  >
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="3" />
-                      <path d="M12 1v4m0 14v4M1 12h4m14 0h4m-3.5-7.5-2.83 2.83M7.33 16.67l-2.83 2.83M20.5 19.5l-2.83-2.83M7.33 7.33 4.5 4.5" />
-                    </svg>
-                    <span className="font-semibold text-sm">Settings</span>
-                  </button>
-                  {isSettingsOpen && (
-                    <>
-                      <div className="fixed inset-0 z-10" onClick={() => setIsSettingsOpen(false)} />
-                      <div className={`dropdown-menu settings-panel absolute right-0 mt-2 w-80 rounded-xl shadow-2xl z-20 border backdrop-blur-2xl overflow-y-auto max-h-[calc(100vh-7rem)] ${isDarkTheme ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}>
+                {/* Settings panel — triggered from sidebar footer */}
+                {isSettingsOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setIsSettingsOpen(false)} />
+                    <div className={`dropdown-menu settings-panel fixed left-72 bottom-4 w-80 rounded-xl shadow-2xl z-20 border backdrop-blur-2xl overflow-y-auto max-h-[calc(100vh-5rem)] ${isDarkTheme ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}>
 
                         {/* ── Appearance ── */}
                         <button
@@ -623,7 +625,6 @@ export default function TodoApp() {
                       </div>
                     </>
                   )}
-                </div>
               </div>
             </div>
 
@@ -790,6 +791,7 @@ export default function TodoApp() {
           </div>{/* end cards inset */}
 
         </div>
+        )}
       </div>
 
       {/* Activity panel */}
@@ -858,13 +860,18 @@ export default function TodoApp() {
         </div>
       )}
 
-      {/* ── Lists toggle (fixed bottom-left) ──────────────────────────────── */}
+      {/* ── Lists toggle (fixed, tracks sidebar edge) ─────────────────────── */}
       <button
         onClick={() => setIsSidebarOpen((o) => !o)}
         title={isSidebarOpen ? 'Hide lists' : 'Show lists'}
-        className={`fixed bottom-6 left-4 z-40 p-2.5 rounded-full transition-all hover:scale-110 shadow-md ${
+        className={`fixed z-40 p-2.5 rounded-full hover:scale-110 shadow-md ${
           isDarkTheme ? 'bg-gray-800/70 text-gray-300 hover:bg-gray-700/80 hover:text-gray-100' : 'bg-white/70 text-gray-500 hover:bg-white/90 hover:text-gray-700'
         }`}
+        style={{
+          bottom: '1.5rem',
+          left: isSidebarOpen ? '19.5rem' : '1rem',
+          transition: 'left 0.3s ease, transform 0.15s ease',
+        }}
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d={isSidebarOpen ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6'} />

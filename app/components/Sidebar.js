@@ -25,6 +25,11 @@ export default function Sidebar({
   roomsError,
   onClearRoomsError,
   username,
+  // view
+  activeView,
+  onSelectCalendar,
+  // settings
+  onOpenSettings,
 }) {
   const [isAddingList, setIsAddingList] = useState(false);
   const [newListName, setNewListName] = useState('');
@@ -52,7 +57,9 @@ export default function Sidebar({
   }
 
   return (
-    <div className="h-full p-6 overflow-y-auto flex flex-col">
+    <div className="h-full flex flex-col">
+    {/* Scrollable area */}
+    <div className="flex-1 overflow-y-auto p-6 flex flex-col">
       <h2 className={`text-xl font-bold mb-5 ${textPrimary}`}>My Lists</h2>
 
       <div className="space-y-1.5">
@@ -222,6 +229,39 @@ export default function Sidebar({
         onClearError={onClearRoomsError}
         isDarkTheme={isDarkTheme}
       />
+
+      {/* Calendar nav */}
+      <div className="mt-4">
+        <div className={`h-px mb-4 ${isDarkTheme ? 'bg-white/10' : 'bg-black/8'}`} />
+        <button
+          onClick={onSelectCalendar}
+          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            activeView === 'calendar' ? activeBg : hoverBg
+          }`}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+          </svg>
+          Calendar
+        </button>
+      </div>
+    </div>{/* end scrollable */}
+
+    {/* Pinned Settings footer */}
+    <div className={`shrink-0 border-t px-4 py-3 ${isDarkTheme ? 'border-white/10' : 'border-black/8'}`}>
+      <button
+        onClick={onOpenSettings}
+        className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+          isDarkTheme ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-black/5'
+        }`}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 1v4m0 14v4M1 12h4m14 0h4m-3.5-7.5-2.83 2.83M7.33 16.67l-2.83 2.83M20.5 19.5l-2.83-2.83M7.33 7.33 4.5 4.5"/>
+        </svg>
+        Settings
+      </button>
+    </div>
     </div>
   );
 }
