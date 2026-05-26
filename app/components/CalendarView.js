@@ -22,7 +22,13 @@ function toDateStr(y, m, d) { return `${y}-${pad(m + 1)}-${pad(d)}`; }
 
 const BLANK = { title: '', date: '', time: '', endDate: '', type: '', tags: '', notes: '', color: '' };
 
-export default function CalendarView({ username, isDarkTheme, isImageTheme, currentTheme }) {
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-');
+  return `${parseInt(d)} ${['January','February','March','April','May','June','July','August','September','October','November','December'][parseInt(m) - 1]}, ${y}`;
+}
+
+export default function CalendarView({ username, isDarkTheme, isImageTheme, currentTheme, isSidebarOpen }) {
   const { events, addEvent, updateEvent, deleteEvent, toggleComplete } = useCalendarEvents(username);
 
   const now      = new Date();
@@ -62,7 +68,12 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
   const numRows = totalCells / 7;
 
   function eventsForDay(day) {
-    return filtered(events.filter(e => e.date === toDateStr(year, month, day)));
+    const ds = toDateStr(year, month, day);
+    return filtered(events.filter(e => {
+      if (e.date === ds) return true;
+      if (e.endDate && e.endDate > e.date && ds > e.date && ds <= e.endDate) return true;
+      return false;
+    }));
   }
 
   function slideGrid(direction, changeFn) {
@@ -172,10 +183,10 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
     <div className="h-full flex flex-col overflow-hidden">
 
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
-      <div className={`shrink-0 px-5 py-2.5 border-b ${border} ${glassBg} flex items-center`}>
+      <div className={`shrink-0 px-5 py-2.5 border-b ${border} ${glassBg} relative flex items-center`}>
 
-        {/* Left — filters (hidden when empty) */}
-        <div className="flex-1 flex items-center gap-1.5 min-w-0 flex-wrap">
+        {/* Left — filters (offset right to clear the sidebar toggle arrow) */}
+        <div className={`flex-1 flex items-center gap-1.5 min-w-0 flex-wrap ${!isSidebarOpen ? 'pl-8' : ''}`}>
           {(allCategories.length > 0 || allTags.length > 0) && (
             <>
               {allCategories.map(cat => (
@@ -185,7 +196,7 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                       ? 'text-white border-transparent'
                       : isDarkTheme ? 'border-gray-600 text-gray-400 hover:bg-white/10' : 'border-gray-300/60 text-gray-600 hover:bg-white/40'
                   }`}
-                  style={filterTypes.includes(cat) ? { backgroundColor: hashColor(cat) } : {}}
+                  style={{ borderColor: filterTypes.includes(cat) ? 'transparent' : hashColor(cat), backgroundColor: filterTypes.includes(cat) ? hashColor(cat) : undefined, color: filterTypes.includes(cat) ? 'white' : hashColor(cat) }}
                 >{cat}</button>
               ))}
               {allTags.map(tag => (
@@ -205,8 +216,8 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
           )}
         </div>
 
-        {/* Center — month nav */}
-        <div className="flex items-center gap-1.5 shrink-0 mx-4">
+        {/* Center — month nav, absolutely centered so it sits over Wed */}
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
           <button onClick={prevMonth}
             className={`p-1.5 rounded-lg transition-colors ${isDarkTheme ? 'hover:bg-white/10 text-gray-300' : 'hover:bg-white/50 text-gray-600'}`}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg>
@@ -216,24 +227,15 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
             className={`p-1.5 rounded-lg transition-colors ${isDarkTheme ? 'hover:bg-white/10 text-gray-300' : 'hover:bg-white/50 text-gray-600'}`}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
           </button>
-          <button onClick={goToday}
-            className={`px-2.5 py-0.5 text-xs font-semibold rounded-lg border transition-colors ${isDarkTheme ? 'border-gray-600 text-gray-300 hover:bg-white/10' : 'border-gray-300/60 text-gray-600 hover:bg-white/50'}`}>
-            Today
-          </button>
         </div>
 
-        {/* Right — add event + panel toggle */}
+        {/* Right — Today + Upcoming panel toggle */}
         <div className="flex-1 flex items-center justify-end gap-2">
-          {/* Add event — semi-transparent glass */}
-          <button
-            onClick={() => openNew(selectedDay)}
-            className={`glass rounded-xl px-3 py-1.5 text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all hover:shadow-md opacity-70 hover:opacity-90 ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
-            Add event
+          <button onClick={goToday}
+            className={`glass rounded-xl px-3 py-1.5 text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all hover:shadow-md opacity-70 hover:opacity-90 ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}>
+            Today
           </button>
 
-          {/* Upcoming panel toggle */}
           <button
             onClick={() => setShowPanel(p => !p)}
             className={`glass rounded-xl px-3 py-1.5 text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all ${
@@ -279,6 +281,7 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                 <div
                   key={`${day}-${idx}`}
                   onClick={() => setSelectedDay(day === selectedDay ? null : day)}
+                  onDoubleClick={() => openNew(day)}
                   className={`rounded-xl p-1 cursor-pointer border transition-all flex flex-col overflow-hidden ${
                     isSelected
                       ? isDarkTheme ? 'border-white/50 bg-white/25' : 'border-black/25 bg-white/88'
@@ -407,20 +410,12 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                 <input placeholder="e.g. midterm, 11-785, week4" value={form.tags}
                   onChange={e => setForm(p => ({ ...p, tags: e.target.value }))} className={inputCls} />
               </div>
-              <div>
-                <label className={labelCls}>Color</label>
+              {form.type && (
                 <div className="flex items-center gap-2">
-                  <input type="color" value={form.color || hashColor(form.type)}
-                    onChange={e => setForm(p => ({ ...p, color: e.target.value }))}
-                    className="w-8 h-8 rounded border-0 cursor-pointer bg-transparent" />
-                  {form.color && (
-                    <button type="button" onClick={() => setForm(p => ({ ...p, color: '' }))}
-                      className={`text-xs ${muted} hover:text-red-400 transition-colors`}>
-                      Reset to category color
-                    </button>
-                  )}
+                  <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: hashColor(form.type) }} />
+                  <span className={`text-[11px] ${muted}`}>Color assigned from category</span>
                 </div>
-              </div>
+              )}
               <div>
                 <label className={labelCls}>Notes</label>
                 <textarea rows={2} placeholder="Optional notes…" value={form.notes}
@@ -479,7 +474,7 @@ function EventCard({ ev, isDarkTheme, muted, text, onEdit, onDelete, onToggle, s
           </div>
         </div>
         <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-          {showDate && <span className={`text-[9px] font-mono ${muted}`}>{ev.date}</span>}
+          {showDate && <span className={`text-[9px] ${muted}`}>{formatDate(ev.date)}</span>}
           {ev.time   && <span className={`text-[9px] font-mono ${muted}`}>{ev.time.slice(0,5)}</span>}
           {ev.type   && <span className="text-[9px] font-semibold" style={{ color }}>{ev.type}</span>}
           {(ev.tags || []).map(tag => (

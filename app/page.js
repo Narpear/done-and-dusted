@@ -408,6 +408,7 @@ export default function TodoApp() {
             isDarkTheme={isDarkTheme}
             isImageTheme={isImageTheme}
             currentTheme={currentTheme}
+            isSidebarOpen={isSidebarOpen}
           />
         ) : (
         <div className="px-30 py-10">
@@ -751,16 +752,17 @@ export default function TodoApp() {
       <button
         onClick={() => setIsSidebarOpen((o) => !o)}
         title={isSidebarOpen ? 'Hide lists' : 'Show lists'}
-        className={`fixed z-40 p-2.5 rounded-full hover:scale-110 shadow-md ${
+        className={`fixed z-40 p-1.5 rounded-full hover:scale-110 shadow-md ${
           isDarkTheme ? 'bg-gray-800/70 text-gray-300 hover:bg-gray-700/80 hover:text-gray-100' : 'bg-white/70 text-gray-500 hover:bg-white/90 hover:text-gray-700'
         }`}
         style={{
-          bottom: activeView === 'calendar' ? '90%' : '1.5rem',
+          top: activeView === 'calendar' ? '0.5rem' : 'auto',
+          bottom: activeView === 'calendar' ? 'auto' : '1.5rem',
           left: isSidebarOpen ? '19.5rem' : '1rem',
-          transition: 'left 0.3s ease, bottom 0.3s ease, transform 0.15s ease',
+          transition: 'left 0.3s ease, top 0.3s ease, bottom 0.3s ease, transform 0.15s ease',
         }}
       >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d={isSidebarOpen ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6'} />
         </svg>
       </button>
