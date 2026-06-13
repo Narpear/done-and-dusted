@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import gsap from 'gsap';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
 
@@ -226,6 +226,10 @@ function TagsDropdown({ allTags, filterTags, onToggle, onClearAll, isDarkTheme, 
   );
 }
 
+function badgeRefCb(node) {
+  if (node) gsap.fromTo(node, { y: -3, opacity: 0 }, { y: 0, opacity: 1, duration: 0.22, ease: 'back.out(2)', clearProps: 'all' });
+}
+
 // ── Main component ──────────────────────────────────────────────────────────
 export default function CalendarView({ username, isDarkTheme, isImageTheme, currentTheme, isSidebarOpen }) {
   const { events, addEvent, updateEvent, deleteEvent, toggleComplete } = useCalendarEvents(username);
@@ -246,6 +250,8 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
   const [categoryColors, setCategoryColors] = useState(() => {
     try { return JSON.parse(localStorage.getItem(`categoryColors_${username}`) || '{}'); } catch { return {}; }
   });
+  const [animateVersion, setAnimateVersion]   = useState(0);
+  const sidePanelEventsRef                    = useRef(null);
 
   function getCategoryColor(cat) { return categoryColors[cat] || hashColor(cat); }
   function saveCategoryColor(cat, color) {
@@ -289,6 +295,7 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
       x: xOut, opacity: 0, duration: 0.18, ease: 'power2.in',
       onComplete: () => {
         changeFn();
+        setAnimateVersion(v => v + 1);
         gsap.fromTo(gridRef.current,
           { x: xIn, opacity: 0 },
           { x: 0, opacity: 1, duration: 0.22, ease: 'power2.out', clearProps: 'x,opacity' }
@@ -296,6 +303,37 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
       },
     });
   }
+
+  // ── Stable callback refs for enter animations ─────────────────────────────
+  const panelCallbackRef = useCallback((node) => {
+    if (node) gsap.fromTo(node, { x: 40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.22, ease: 'power2.out', clearProps: 'x,opacity' });
+  }, []);
+
+  const modalCallbackRef = useCallback((node) => {
+    if (node) gsap.fromTo(node, { scale: 0.95, y: -10, opacity: 0 }, { scale: 1, y: 0, opacity: 1, duration: 0.2, ease: 'power2.out', clearProps: 'all' });
+  }, []);
+
+  // ── Cell stagger on initial mount ─────────────────────────────────────────
+  useLayoutEffect(() => {
+    if (!gridRef.current) return;
+    const cells = gridRef.current.querySelectorAll('[data-cell]');
+    gsap.fromTo(cells, { y: 8, opacity: 0 }, { y: 0, opacity: 1, duration: 0.2, stagger: 0.005, ease: 'power2.out', clearProps: 'all' });
+  }, []);
+
+  // ── Cell stagger after each month slide ───────────────────────────────────
+  useLayoutEffect(() => {
+    if (animateVersion === 0 || !gridRef.current) return;
+    const cells = gridRef.current.querySelectorAll('[data-cell]');
+    gsap.fromTo(cells, { y: 8 }, { y: 0, duration: 0.15, stagger: 0.005, ease: 'power2.out', clearProps: 'all', delay: 0.18 });
+  }, [animateVersion]);
+
+  // ── Event card stagger when selected day changes ───────────────────────────
+  useEffect(() => {
+    if (!sidePanelEventsRef.current) return;
+    const cards = Array.from(sidePanelEventsRef.current.children);
+    if (!cards.length) return;
+    gsap.fromTo(cards, { x: -10, opacity: 0 }, { x: 0, opacity: 1, duration: 0.15, stagger: 0.06, ease: 'power2.out', clearProps: 'all' });
+  }, [selectedDay]);
 
   function prevMonth() {
     slideGrid('prev', () => {
@@ -458,7 +496,11 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
               return (
                 <div
                   key={`${day}-${idx}`}
-                  onClick={() => setSelectedDay(day === selectedDay ? null : day)}
+                  data-cell
+                  onClick={e => {
+                    gsap.fromTo(e.currentTarget, { scale: 0.97 }, { scale: 1, duration: 0.22, ease: 'back.out(2)', clearProps: 'scale' });
+                    setSelectedDay(day === selectedDay ? null : day);
+                  }}
                   onDoubleClick={() => openNew(day)}
                   className={`rounded-xl p-1 cursor-pointer border transition-all flex flex-col overflow-hidden ${
                     isSelected
@@ -475,19 +517,34 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                       {day}
                     </span>
                     {dayEvs.length > 2 && (
-                      <span className={`text-xs font-semibold ${muted}`}>+{dayEvs.length - 2}</span>
+                      <span ref={badgeRefCb} className={`text-xs font-semibold ${muted}`}>+{dayEvs.length - 2}</span>
                     )}
                   </div>
                   <div className="flex-1 flex flex-col gap-0.5 mt-0.5 overflow-hidden">
                     {dayEvs.slice(0, 2).map(ev => (
                       <div
                         key={ev.id}
-                        onClick={e => { e.stopPropagation(); openEdit(ev); }}
-                        className={`${pillBase} flex items-center gap-0.5 ${ev.completed ? 'opacity-50 line-through' : ''}`}
+                        className={`text-white text-xs font-semibold px-1.5 py-0.5 rounded flex items-center gap-0.5 transition-opacity ${ev.completed ? 'opacity-50' : ''}`}
                         style={{ backgroundColor: eventColor(ev, categoryColors) }}
                       >
-                        {ev.time && <span className="shrink-0 opacity-80 text-xs">{ev.time.slice(0, 5)}</span>}
-                        <span className="truncate text-xs">{ev.title}</span>
+                        <button
+                          onClick={e => { e.stopPropagation(); toggleComplete(ev.id); }}
+                          className="shrink-0 rounded-full border border-white/60 flex items-center justify-center hover:scale-125 transition-transform"
+                          style={{ width: 8, height: 8, minWidth: 8, backgroundColor: ev.completed ? 'rgba(255,255,255,0.85)' : 'transparent' }}
+                        >
+                          {ev.completed && (
+                            <svg width="4" height="4" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="4">
+                              <path d="M5 13l4 4L19 7"/>
+                            </svg>
+                          )}
+                        </button>
+                        <div
+                          onClick={e => { e.stopPropagation(); openEdit(ev); }}
+                          className={`truncate flex items-center gap-0.5 cursor-pointer hover:opacity-80 transition-opacity flex-1 min-w-0 ${ev.completed ? 'line-through' : ''}`}
+                        >
+                          {ev.time && <span className="shrink-0 opacity-80">{ev.time.slice(0, 5)}</span>}
+                          <span className="truncate">{ev.title}</span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -499,7 +556,7 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
 
         {/* Side panel */}
         {showPanel && (
-          <div className={`w-56 shrink-0 border-l ${border} ${sidePanelBg} flex flex-col overflow-hidden`}>
+          <div ref={panelCallbackRef} className={`w-56 shrink-0 border-l ${border} ${sidePanelBg} flex flex-col overflow-hidden`}>
             {selectedDay ? (
               <div className={`shrink-0 p-3 border-b ${border}`}>
                 <div className="flex items-center justify-between mb-2">
@@ -510,7 +567,7 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                 </div>
                 {selectedEvents.length === 0
                   ? <p className={`text-sm ${muted}`}>No events. Click + to add.</p>
-                  : <div className="space-y-1.5">
+                  : <div ref={sidePanelEventsRef} className="space-y-1.5">
                       {selectedEvents.map(ev => (
                         <EventCard key={ev.id} ev={ev} isDarkTheme={isDarkTheme} muted={muted} text={text}
                           onEdit={openEdit} onDelete={deleteEvent} onToggle={toggleComplete}
@@ -548,6 +605,7 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
           onClick={() => { setShowForm(false); setEditId(null); }}
         >
           <div
+            ref={modalCallbackRef}
             className={`rounded-2xl border shadow-2xl p-6 w-full max-w-md ${modalBg}`}
             onClick={e => e.stopPropagation()}
           >
@@ -645,7 +703,7 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
 function EventCard({ ev, isDarkTheme, muted, text, onEdit, onDelete, onToggle, showDate, getCategoryColor }) {
   const color = ev.color || (ev.type && getCategoryColor ? getCategoryColor(ev.type) : null) || hashColor(ev.type);
   return (
-    <div className={`flex items-start gap-1.5 group ${ev.completed ? 'opacity-50' : ''}`}>
+    <div data-event-card className={`flex items-start gap-1.5 group ${ev.completed ? 'opacity-50' : ''}`}>
       <button
         onClick={() => onToggle(ev.id)}
         className="mt-0.5 shrink-0 w-3 h-3 rounded-full border-2 transition-colors flex items-center justify-center"
