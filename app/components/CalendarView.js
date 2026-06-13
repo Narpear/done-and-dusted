@@ -524,7 +524,7 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                     {dayEvs.slice(0, 2).map(ev => (
                       <div
                         key={ev.id}
-                        className={`text-white text-xs font-semibold px-1.5 py-0.5 rounded flex items-center gap-0.5 transition-opacity ${ev.completed ? 'opacity-50' : ''}`}
+                        className={`text-white text-xs font-semibold px-1.5 py-0.5 rounded flex items-center gap-1.5 transition-opacity ${ev.completed ? 'opacity-50' : ''}`}
                         style={{ backgroundColor: eventColor(ev, categoryColors) }}
                       >
                         <button
