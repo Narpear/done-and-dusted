@@ -55,7 +55,8 @@ function FilterDropdown({ label, icon, count, isDarkTheme, children }) {
         }`}
       >
         {icon}
-        <span>{count > 0 ? `${count} ${label}${count > 1 ? 's' : ''}` : label}</span>
+        <span className="hidden sm:inline">{count > 0 ? `${count} ${label}${count > 1 ? 's' : ''}` : label}</span>
+        {count > 0 && <span className="sm:hidden text-xs font-bold">{count}</span>}
         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
           <path d={open ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} />
         </svg>
@@ -234,6 +235,15 @@ function badgeRefCb(node) {
 export default function CalendarView({ username, isDarkTheme, isImageTheme, currentTheme, isSidebarOpen }) {
   const { events, addEvent, updateEvent, deleteEvent, toggleComplete } = useCalendarEvents(username);
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const h = (e) => setIsMobile(e.matches);
+    setIsMobile(mq.matches);
+    mq.addEventListener('change', h);
+    return () => mq.removeEventListener('change', h);
+  }, []);
+
   const now      = new Date();
   const todayStr = toDateStr(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -306,8 +316,13 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
 
   // ── Stable callback refs for enter animations ─────────────────────────────
   const panelCallbackRef = useCallback((node) => {
-    if (node) gsap.fromTo(node, { x: 40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.22, ease: 'power2.out', clearProps: 'x,opacity' });
-  }, []);
+    if (!node) return;
+    if (isMobile) {
+      gsap.fromTo(node, { y: 320, opacity: 0 }, { y: 0, opacity: 1, duration: 0.32, ease: 'power3.out', clearProps: 'all' });
+    } else {
+      gsap.fromTo(node, { x: 40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.22, ease: 'power2.out', clearProps: 'x,opacity' });
+    }
+  }, [isMobile]);
 
   const modalCallbackRef = useCallback((node) => {
     if (node) gsap.fromTo(node, { scale: 0.95, y: -10, opacity: 0 }, { scale: 1, y: 0, opacity: 1, duration: 0.2, ease: 'power2.out', clearProps: 'all' });
@@ -417,7 +432,7 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
       <div className={`shrink-0 px-5 py-2.5 border-b ${border} ${glassBg} relative flex items-center z-20`}>
 
         {/* Left — spacer (keeps center nav truly centered) */}
-        <div className={`flex-1 ${!isSidebarOpen ? 'pl-8' : ''}`} />
+        <div className={`flex-1 ${!isSidebarOpen && !isMobile ? 'pl-8' : ''}`} />
 
         {/* Center — month nav */}
         <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
@@ -466,7 +481,7 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
             </svg>
-            Upcoming
+            <span className="hidden sm:inline">Upcoming</span>
           </button>
         </div>
       </div>
@@ -554,47 +569,90 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
           </div>
         </div>
 
-        {/* Side panel */}
+        {/* Side panel — right rail on desktop, bottom sheet on mobile */}
         {showPanel && (
-          <div ref={panelCallbackRef} className={`w-56 shrink-0 border-l ${border} ${sidePanelBg} flex flex-col overflow-hidden`}>
-            {selectedDay ? (
-              <div className={`shrink-0 p-3 border-b ${border}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className={`text-sm font-bold ${text}`}>{MONTHS[month].slice(0, 3)} {selectedDay}</h3>
-                  <button onClick={() => openNew(selectedDay)} className={`${muted} hover:opacity-60 transition-opacity`}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
-                  </button>
+          <>
+            {isMobile && (
+              <div
+                className="fixed inset-0 z-20 bg-black/40 backdrop-blur-sm"
+                onClick={() => setShowPanel(false)}
+              />
+            )}
+            <div
+              ref={panelCallbackRef}
+              className={
+                isMobile
+                  ? `fixed inset-x-0 bottom-0 z-30 flex flex-col rounded-t-2xl overflow-hidden max-h-[72vh] border-t ${border} ${sidePanelBg}`
+                  : `w-56 shrink-0 border-l ${border} ${sidePanelBg} flex flex-col overflow-hidden`
+              }
+            >
+              {/* Mobile drag handle */}
+              {isMobile && (
+                <div className="flex flex-col items-center pt-3 pb-1 shrink-0">
+                  <div className={`w-10 h-1 rounded-full mb-2 ${isDarkTheme ? 'bg-gray-600' : 'bg-gray-300'}`} />
+                  <div className={`w-full flex items-center justify-between px-4 pb-2 border-b ${border}`}>
+                    <span className={`text-sm font-bold ${text}`}>
+                      {selectedDay ? `${MONTHS[month].slice(0, 3)} ${selectedDay}` : 'Upcoming'}
+                    </span>
+                    <button onClick={() => setShowPanel(false)} className={`${muted} hover:opacity-60 transition-opacity`}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
+                  </div>
                 </div>
-                {selectedEvents.length === 0
-                  ? <p className={`text-sm ${muted}`}>No events. Click + to add.</p>
-                  : <div ref={sidePanelEventsRef} className="space-y-1.5">
-                      {selectedEvents.map(ev => (
+              )}
+
+              {selectedDay ? (
+                <div className={`shrink-0 p-3 ${isMobile ? '' : `border-b ${border}`}`}>
+                  {!isMobile && (
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className={`text-sm font-bold ${text}`}>{MONTHS[month].slice(0, 3)} {selectedDay}</h3>
+                      <button onClick={() => openNew(selectedDay)} className={`${muted} hover:opacity-60 transition-opacity`}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                      </button>
+                    </div>
+                  )}
+                  {isMobile && (
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-xs font-semibold uppercase tracking-widest ${muted}`}>Events this day</span>
+                      <button onClick={() => openNew(selectedDay)} className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${isDarkTheme ? 'bg-white/10 text-white' : 'bg-black/8 text-gray-700'}`}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                        Add
+                      </button>
+                    </div>
+                  )}
+                  {selectedEvents.length === 0
+                    ? <p className={`text-sm ${muted}`}>No events. Click + to add.</p>
+                    : <div ref={sidePanelEventsRef} className="space-y-1.5">
+                        {selectedEvents.map(ev => (
+                          <EventCard key={ev.id} ev={ev} isDarkTheme={isDarkTheme} muted={muted} text={text}
+                            onEdit={openEdit} onDelete={deleteEvent} onToggle={toggleComplete}
+                            getCategoryColor={getCategoryColor} />
+                        ))}
+                      </div>
+                  }
+                </div>
+              ) : (
+                !isMobile && (
+                  <div className={`shrink-0 p-3 border-b ${border}`}>
+                    <p className={`text-sm ${muted}`}>Click a day to see events.</p>
+                  </div>
+                )
+              )}
+              <div className="flex-1 overflow-y-auto p-3">
+                <h3 className={`text-sm font-bold uppercase tracking-widest ${muted} mb-2`}>Upcoming</h3>
+                {soon.length === 0
+                  ? <p className={`text-sm ${muted}`}>Nothing coming up.</p>
+                  : <div className="space-y-1.5">
+                      {soon.map(ev => (
                         <EventCard key={ev.id} ev={ev} isDarkTheme={isDarkTheme} muted={muted} text={text}
-                          onEdit={openEdit} onDelete={deleteEvent} onToggle={toggleComplete}
+                          onEdit={openEdit} onDelete={deleteEvent} onToggle={toggleComplete} showDate
                           getCategoryColor={getCategoryColor} />
                       ))}
                     </div>
                 }
               </div>
-            ) : (
-              <div className={`shrink-0 p-3 border-b ${border}`}>
-                <p className={`text-sm ${muted}`}>Click a day to see events.</p>
-              </div>
-            )}
-            <div className="flex-1 overflow-y-auto p-3">
-              <h3 className={`text-sm font-bold uppercase tracking-widest ${muted} mb-2`}>Upcoming</h3>
-              {soon.length === 0
-                ? <p className={`text-sm ${muted}`}>Nothing coming up.</p>
-                : <div className="space-y-1.5">
-                    {soon.map(ev => (
-                      <EventCard key={ev.id} ev={ev} isDarkTheme={isDarkTheme} muted={muted} text={text}
-                        onEdit={openEdit} onDelete={deleteEvent} onToggle={toggleComplete} showDate
-                        getCategoryColor={getCategoryColor} />
-                    ))}
-                  </div>
-              }
             </div>
-          </div>
+          </>
         )}
       </div>
 
@@ -606,7 +664,7 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
         >
           <div
             ref={modalCallbackRef}
-            className={`rounded-2xl border shadow-2xl p-6 w-full max-w-md ${modalBg}`}
+            className={`border shadow-2xl p-6 w-full ${modalBg} ${isMobile ? 'rounded-t-2xl fixed bottom-0 inset-x-0 max-h-[90vh] overflow-y-auto' : 'rounded-2xl max-w-md'}`}
             onClick={e => e.stopPropagation()}
           >
             <h3 className={`text-base font-bold mb-4 ${text}`}>{editId ? 'Edit event' : 'New event'}</h3>

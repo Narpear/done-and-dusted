@@ -47,6 +47,19 @@ export default function TodoApp() {
   const [usernameConfirmInput, setUsernameConfirmInput] = useState('');
   function toggleSection(s) { setOpenSection((p) => p === s ? null : s); }
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const handler = (e) => {
+      setIsMobile(e.matches);
+      if (e.matches) setIsSidebarOpen(false);
+    };
+    setIsMobile(mq.matches);
+    if (mq.matches) setIsSidebarOpen(false);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   const {
     lists, currentListId, setCurrentListId,
     todos, theme, setTheme, font, setFont, mode, setMode, layout, setLayout,
@@ -367,8 +380,20 @@ export default function TodoApp() {
         </div>
       )}
 
+      {/* Mobile sidebar backdrop */}
+      {isMobile && isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 backdrop-blur-sm"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className={`${isSidebarOpen ? 'w-72' : 'w-0'} transition-all duration-300 shrink-0 overflow-hidden`}>
+      <div className={
+        isMobile
+          ? `fixed top-0 left-0 h-full w-72 z-40 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
+          : `${isSidebarOpen ? 'w-72' : 'w-0'} transition-all duration-300 shrink-0 overflow-hidden`
+      }>
         <div className={`h-full border-r overflow-hidden backdrop-blur-xl ${
           isDarkTheme ? 'bg-gray-900/70 border-gray-700/30' : 'bg-white/60 border-white/40'
         }`}>
@@ -411,13 +436,13 @@ export default function TodoApp() {
             isSidebarOpen={isSidebarOpen}
           />
         ) : (
-        <div className="px-30 py-10">
+        <div className="px-4 sm:px-10 md:px-20 lg:px-30 py-6 md:py-10">
 
           {/* Header */}
           <div className="mb-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 mb-6">
               <div>
-                <h1 className="text-5xl font-bold mb-2">
+                <h1 className="text-3xl md:text-5xl font-bold mb-2">
                   <span className="gradient-text" style={isImageTheme ? { WebkitTextFillColor: currentTheme.titleColor } : undefined}>Done and Dusted</span>
                 </h1>
                 <div className="flex items-center gap-3">
@@ -748,24 +773,41 @@ export default function TodoApp() {
         </div>
       )}
 
-      {/* ── Lists toggle (fixed, tracks sidebar edge) ─────────────────────── */}
-      <button
-        onClick={() => setIsSidebarOpen((o) => !o)}
-        title={isSidebarOpen ? 'Hide lists' : 'Show lists'}
-        className={`fixed z-40 p-1.5 rounded-full hover:scale-110 shadow-md ${
-          isDarkTheme ? 'bg-gray-800/70 text-gray-300 hover:bg-gray-700/80 hover:text-gray-100' : 'bg-white/70 text-gray-500 hover:bg-white/90 hover:text-gray-700'
-        }`}
-        style={{
-          top: activeView === 'calendar' ? '0.5rem' : 'auto',
-          bottom: activeView === 'calendar' ? 'auto' : '1.5rem',
-          left: isSidebarOpen ? '19.5rem' : '1rem',
-          transition: 'left 0.3s ease, top 0.3s ease, bottom 0.3s ease, transform 0.15s ease',
-        }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d={isSidebarOpen ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6'} />
-        </svg>
-      </button>
+      {/* ── Desktop toggle (tracks sidebar edge) ─────────────────────────── */}
+      {!isMobile && (
+        <button
+          onClick={() => setIsSidebarOpen((o) => !o)}
+          title={isSidebarOpen ? 'Hide lists' : 'Show lists'}
+          className={`fixed z-40 p-1.5 rounded-full hover:scale-110 shadow-md ${
+            isDarkTheme ? 'bg-gray-800/70 text-gray-300 hover:bg-gray-700/80 hover:text-gray-100' : 'bg-white/70 text-gray-500 hover:bg-white/90 hover:text-gray-700'
+          }`}
+          style={{
+            top: activeView === 'calendar' ? '0.5rem' : 'auto',
+            bottom: activeView === 'calendar' ? 'auto' : '1.5rem',
+            left: isSidebarOpen ? '19.5rem' : '1rem',
+            transition: 'left 0.3s ease, top 0.3s ease, bottom 0.3s ease, transform 0.15s ease',
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d={isSidebarOpen ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6'} />
+          </svg>
+        </button>
+      )}
+
+      {/* ── Mobile FAB: hamburger (only when sidebar is closed) ───────────── */}
+      {isMobile && !isSidebarOpen && (
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className={`fixed z-50 p-2.5 rounded-xl shadow-lg ${
+            isDarkTheme ? 'bg-gray-800/90 text-gray-200' : 'bg-white/90 text-gray-700'
+          }`}
+          style={{ bottom: '1.5rem', left: '1rem' }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M3 12h18M3 6h18M3 18h18"/>
+          </svg>
+        </button>
+      )}
 
       {/* ── Settings panel — fixed overlay, works in all views ─────────────── */}
       {isSettingsOpen && (
