@@ -65,20 +65,20 @@ body {
 
 /* Glass morphism effect */
 .glass {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .dark .glass {
-  background: rgba(17, 24, 39, 0.85);
+  background: rgba(17, 24, 39, 0.90);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Image themes — cards are mostly opaque so content is readable */
 .bg-image .glass {
-  background: rgba(255, 255, 255, 0.8) !important;
+  background: rgba(255, 255, 255, 0.88) !important;
   border: 1px solid rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -217,6 +217,15 @@ body {
 
 .btn-primary:active {
   transform: translateY(0);
+}
+
+/* On touch devices, show hover-only action buttons so they're tappable */
+@media (hover: none) {
+  .delete-btn,
+  .todo-actions-row,
+  .event-card-actions {
+    opacity: 1 !important;
+  }
 }
 
 /* Hide all scrollbars */

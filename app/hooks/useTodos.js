@@ -4,6 +4,11 @@ import { useState, useEffect, useRef } from 'react';
 import { arrayMove } from '@dnd-kit/sortable';
 import { generateId, calcProgress, getNextRecurrenceDate } from '../lib/utils';
 
+async function getSupabase() {
+  const { supabase } = await import('../lib/supabase');
+  return supabase;
+}
+
 const STORAGE_KEYS = {
   lists: 'doneAndDustedLists',
   currentListId: 'doneAndDustedCurrentListId',
@@ -60,7 +65,9 @@ export function useTodos() {
   const [layout, setLayout] = useState('grid');
   const [sortBy, setSortBy] = useState('manual');
   const [deletedTodo, setDeletedTodo] = useState(null); // { todo, index, listId }
-  const undoTimerRef = useRef(null);
+  const undoTimerRef  = useRef(null);
+  const syncTimerRef  = useRef(null);
+  const ignoreSyncRef = useRef(false); // suppress echo from our own upsert
 
   // ── Load from localStorage ───────────────────────────────────────────────
   useEffect(() => {
@@ -117,8 +124,82 @@ export function useTodos() {
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.layout, layout); }, [layout]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.sortBy, sortBy); }, [sortBy]);
 
-  // Cleanup undo timer on unmount
-  useEffect(() => () => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current); }, []);
+  // ── Supabase cross-device sync ────────────────────────────────────────────
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem('dd_user') || 'null');
+    const username = stored?.username;
+    if (!username) return;
+
+    let channel;
+    let cancelled = false;
+
+    (async () => {
+      const sb = await getSupabase();
+
+      // Load from Supabase — overrides localStorage so other devices' changes win
+      const { data } = await sb
+        .from('personal_todos')
+        .select('lists, current_list_id')
+        .eq('username', username)
+        .maybeSingle();
+
+      if (!cancelled && data) {
+        ignoreSyncRef.current = true;
+        if (data.lists) setLists(data.lists);
+        if (data.current_list_id) setCurrentListId(data.current_list_id);
+        ignoreSyncRef.current = false;
+      }
+
+      // Realtime: receive changes from other devices
+      channel = sb
+        .channel(`personal_todos:${username}`)
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'personal_todos',
+          filter: `username=eq.${username}`,
+        }, (payload) => {
+          if (ignoreSyncRef.current) return;
+          const row = payload.new;
+          if (row?.lists)            setLists(row.lists);
+          if (row?.current_list_id)  setCurrentListId(row.current_list_id);
+        })
+        .subscribe();
+    })();
+
+    return () => {
+      cancelled = true;
+      if (channel) channel.unsubscribe();
+    };
+  }, []);
+
+  // Debounced upsert to Supabase whenever lists change
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem('dd_user') || 'null');
+    const username = stored?.username;
+    if (!username) return;
+
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(async () => {
+      ignoreSyncRef.current = true;
+      try {
+        const sb = await getSupabase();
+        await sb.from('personal_todos').upsert({
+          username,
+          lists,
+          current_list_id: currentListId,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'username' });
+      } catch {}
+      ignoreSyncRef.current = false;
+    }, 800);
+
+    return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
+  }, [lists, currentListId]);
+
+  // Cleanup timers on unmount
+  useEffect(() => () => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+  }, []);
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const currentList = lists.find((l) => l.id === currentListId) || lists[0];

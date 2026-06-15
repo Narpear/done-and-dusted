@@ -315,7 +315,7 @@ export default function TodoItem({
 
             {/* Action buttons row */}
             {!isEditing && (
-              <div className="flex items-center gap-3 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="todo-actions-row flex items-center gap-3 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={() => setIsAddingSubtask(true)}
                   className="text-xs font-medium hover:text-blue-600 dark:hover:text-blue-400"

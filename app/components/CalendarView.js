@@ -262,6 +262,8 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
   });
   const [animateVersion, setAnimateVersion]   = useState(0);
   const sidePanelEventsRef                    = useRef(null);
+  const touchStartX                           = useRef(null);
+  const touchStartY                           = useRef(null);
 
   function getCategoryColor(cat) { return categoryColors[cat] || hashColor(cat); }
   function saveCategoryColor(cat, color) {
@@ -350,6 +352,22 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
     gsap.fromTo(cards, { x: -10, opacity: 0 }, { x: 0, opacity: 1, duration: 0.15, stagger: 0.06, ease: 'power2.out', clearProps: 'all' });
   }, [selectedDay]);
 
+  function handleTouchStart(e) {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }
+  function handleTouchEnd(e) {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = Math.abs(e.changedTouches[0].clientY - (touchStartY.current || 0));
+    if (Math.abs(dx) > 50 && dy < 40) {
+      if (dx < 0) nextMonth();
+      else prevMonth();
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  }
+
   function prevMonth() {
     slideGrid('prev', () => {
       if (month === 0) { setMonth(11); setYear(y => y - 1); } else setMonth(m => m - 1);
@@ -402,10 +420,10 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
   const border      = isDarkTheme ? 'border-gray-700/50' : 'border-white/30';
   const text        = isDarkTheme ? 'text-white'    : 'text-gray-800';
   const muted       = isDarkTheme ? 'text-gray-300' : 'text-gray-600';
-  const cellBg      = isDarkTheme ? 'bg-gray-800/60 hover:bg-gray-700/70' : 'bg-white/62 hover:bg-white/75';
-  const glassBg     = isDarkTheme ? 'bg-gray-900/50 backdrop-blur-xl border-gray-700/40' : 'bg-white/25 backdrop-blur-xl border-white/30';
-  const sidePanelBg = isDarkTheme ? 'bg-gray-900/60 backdrop-blur-xl' : 'bg-white/40 backdrop-blur-xl';
-  const dayHeaderBg = isDarkTheme ? 'bg-gray-900/50 backdrop-blur-md'  : 'bg-white/30 backdrop-blur-md';
+  const cellBg      = isDarkTheme ? 'bg-gray-800/78 hover:bg-gray-700/88' : 'bg-white/82 hover:bg-white/92';
+  const glassBg     = isDarkTheme ? 'bg-gray-900/70 backdrop-blur-xl border-gray-700/40' : 'bg-white/55 backdrop-blur-xl border-white/30';
+  const sidePanelBg = isDarkTheme ? 'bg-gray-900/80 backdrop-blur-xl' : 'bg-white/68 backdrop-blur-xl';
+  const dayHeaderBg = isDarkTheme ? 'bg-gray-900/65 backdrop-blur-md'  : 'bg-white/55 backdrop-blur-md';
   const inputCls    = `w-full px-3 py-2 text-base rounded-lg border focus:outline-none focus:ring-2 focus:ring-black/10 ${
     isDarkTheme ? 'bg-gray-800 border-gray-600 text-white placeholder:text-gray-500' : 'bg-white/80 border-gray-200 text-gray-900 placeholder:text-gray-400'
   }`;
@@ -429,68 +447,87 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
     <div className="h-full flex flex-col overflow-hidden">
 
       {/* ── Top bar — z-20 so dropdowns sit above calendar body ── */}
-      <div className={`shrink-0 px-5 py-2.5 border-b ${border} ${glassBg} relative flex items-center z-20`}>
-
-        {/* Left — spacer (keeps center nav truly centered) */}
-        <div className={`flex-1 ${!isSidebarOpen && !isMobile ? 'pl-8' : ''}`} />
-
-        {/* Center — month nav */}
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
-          <button onClick={prevMonth}
-            className={`p-1.5 rounded-lg transition-colors ${isDarkTheme ? 'hover:bg-white/10 text-gray-300' : 'hover:bg-white/50 text-gray-600'}`}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg>
-          </button>
-          <span className={`text-base font-bold w-36 text-center select-none ${text}`}>{MONTHS[month]} {year}</span>
-          <button onClick={nextMonth}
-            className={`p-1.5 rounded-lg transition-colors ${isDarkTheme ? 'hover:bg-white/10 text-gray-300' : 'hover:bg-white/50 text-gray-600'}`}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
-          </button>
-        </div>
-
-        {/* Right — filters + Today + Upcoming */}
-        <div className="flex-1 flex items-center justify-end gap-2">
-          {allCategories.length > 0 && (
-            <CategoryDropdown
-              allCategories={allCategories}
-              filterTypes={filterTypes}
-              onToggle={toggleTypeFilter}
-              onClearAll={() => setFilterTypes([])}
-              getCategoryColor={getCategoryColor}
-              saveCategoryColor={saveCategoryColor}
-              isDarkTheme={isDarkTheme}
-              muted={muted}
-            />
-          )}
-          {allTags.length > 0 && (
-            <TagsDropdown
-              allTags={allTags}
-              filterTags={filterTags}
-              onToggle={toggleTagFilter}
-              onClearAll={() => setFilterTags([])}
-              isDarkTheme={isDarkTheme}
-              muted={muted}
-            />
-          )}
-
-          <button onClick={() => setShowPanel(p => !p)}
-            className={`glass rounded-xl px-3 py-1.5 text-sm font-semibold shadow-sm flex items-center gap-1.5 transition-all ${
-              showPanel
-                ? isDarkTheme ? 'bg-white/15 text-white' : 'bg-black/10 text-gray-800'
-                : isDarkTheme ? 'text-gray-300' : 'text-gray-600'
-            }`}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
-            </svg>
-            <span className="hidden sm:inline">Upcoming</span>
-          </button>
-        </div>
+      <div className={`shrink-0 border-b ${border} ${glassBg} z-20`}>
+        {isMobile ? (
+          /* Mobile: two-row layout so nav arrows are never covered */
+          <>
+            <div className="flex items-center justify-between px-5 pt-2.5 pb-1.5">
+              <button onClick={prevMonth}
+                className={`p-1.5 rounded-lg transition-colors ${isDarkTheme ? 'hover:bg-white/10 text-gray-300' : 'hover:bg-white/50 text-gray-600'}`}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
+              <span className={`text-base font-bold select-none ${text}`}>{MONTHS[month]} {year}</span>
+              <button onClick={nextMonth}
+                className={`p-1.5 rounded-lg transition-colors ${isDarkTheme ? 'hover:bg-white/10 text-gray-300' : 'hover:bg-white/50 text-gray-600'}`}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-4 pb-2">
+              {allCategories.length > 0 && (
+                <CategoryDropdown allCategories={allCategories} filterTypes={filterTypes} onToggle={toggleTypeFilter}
+                  onClearAll={() => setFilterTypes([])} getCategoryColor={getCategoryColor}
+                  saveCategoryColor={saveCategoryColor} isDarkTheme={isDarkTheme} muted={muted} />
+              )}
+              {allTags.length > 0 && (
+                <TagsDropdown allTags={allTags} filterTags={filterTags} onToggle={toggleTagFilter}
+                  onClearAll={() => setFilterTags([])} isDarkTheme={isDarkTheme} muted={muted} />
+              )}
+              <button onClick={() => setShowPanel(p => !p)}
+                className={`glass rounded-xl px-3 py-1.5 text-sm font-semibold shadow-sm flex items-center gap-1.5 transition-all ${
+                  showPanel ? isDarkTheme ? 'bg-white/15 text-white' : 'bg-black/10 text-gray-800'
+                           : isDarkTheme ? 'text-gray-300' : 'text-gray-600'
+                }`}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                </svg>
+              </button>
+            </div>
+          </>
+        ) : (
+          /* Desktop: single row with absolute-centered nav */
+          <div className="px-5 py-2.5 relative flex items-center">
+            <div className={`flex-1 ${!isSidebarOpen ? 'pl-8' : ''}`} />
+            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
+              <button onClick={prevMonth}
+                className={`p-1.5 rounded-lg transition-colors ${isDarkTheme ? 'hover:bg-white/10 text-gray-300' : 'hover:bg-white/50 text-gray-600'}`}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
+              <span className={`text-base font-bold w-36 text-center select-none ${text}`}>{MONTHS[month]} {year}</span>
+              <button onClick={nextMonth}
+                className={`p-1.5 rounded-lg transition-colors ${isDarkTheme ? 'hover:bg-white/10 text-gray-300' : 'hover:bg-white/50 text-gray-600'}`}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
+            </div>
+            <div className="flex-1 flex items-center justify-end gap-2">
+              {allCategories.length > 0 && (
+                <CategoryDropdown allCategories={allCategories} filterTypes={filterTypes} onToggle={toggleTypeFilter}
+                  onClearAll={() => setFilterTypes([])} getCategoryColor={getCategoryColor}
+                  saveCategoryColor={saveCategoryColor} isDarkTheme={isDarkTheme} muted={muted} />
+              )}
+              {allTags.length > 0 && (
+                <TagsDropdown allTags={allTags} filterTags={filterTags} onToggle={toggleTagFilter}
+                  onClearAll={() => setFilterTags([])} isDarkTheme={isDarkTheme} muted={muted} />
+              )}
+              <button onClick={() => setShowPanel(p => !p)}
+                className={`glass rounded-xl px-3 py-1.5 text-sm font-semibold shadow-sm flex items-center gap-1.5 transition-all ${
+                  showPanel ? isDarkTheme ? 'bg-white/15 text-white' : 'bg-black/10 text-gray-800'
+                           : isDarkTheme ? 'text-gray-300' : 'text-gray-600'
+                }`}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                </svg>
+                <span className="hidden sm:inline">Upcoming</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Body ─────────────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-hidden flex">
 
         {/* Calendar grid */}
-        <div className="flex-1 overflow-hidden flex flex-col p-2 gap-1">
+        <div className={`${isMobile ? 'flex-1 overflow-y-auto' : 'flex-1 overflow-hidden'} flex flex-col p-2 gap-1`}>
           <div className={`grid grid-cols-7 rounded-xl overflow-hidden ${dayHeaderBg}`}>
             {DAYS.map(d => (
               <div key={d} className={`py-1.5 text-center text-xs font-bold uppercase tracking-widest ${muted}`}>{d}</div>
@@ -499,8 +536,10 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
 
           <div
             ref={gridRef}
-            className="flex-1 grid grid-cols-7 gap-1"
-            style={{ gridTemplateRows: `repeat(${numRows}, 1fr)` }}
+            className={`${isMobile ? '' : 'flex-1'} grid grid-cols-7 gap-1`}
+            style={{ gridTemplateRows: `repeat(${numRows}, ${isMobile ? '68px' : '1fr'})` }}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
           >
             {paddedCells.map((day, idx) => {
               if (!day) return <div key={`e-${idx}`} className="rounded-xl" />;
@@ -514,9 +553,11 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                   data-cell
                   onClick={e => {
                     gsap.fromTo(e.currentTarget, { scale: 0.97 }, { scale: 1, duration: 0.22, ease: 'back.out(2)', clearProps: 'scale' });
-                    setSelectedDay(day === selectedDay ? null : day);
+                    const newDay = day === selectedDay ? null : day;
+                    setSelectedDay(newDay);
+                    if (isMobile && newDay !== null) setShowPanel(true);
                   }}
-                  onDoubleClick={() => openNew(day)}
+                  onDoubleClick={() => !isMobile && openNew(day)}
                   className={`rounded-xl p-1 cursor-pointer border transition-all flex flex-col overflow-hidden ${
                     isSelected
                       ? isDarkTheme ? 'border-white/50 bg-white/25' : 'border-black/25 bg-white/88'
@@ -525,44 +566,67 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                       : `${cellBg} border-transparent`
                   }`}
                 >
-                  <div className="flex items-center justify-between shrink-0">
-                    <span className={`text-xs font-bold w-4 h-4 flex items-center justify-center rounded-full ${
-                      isToday ? isDarkTheme ? 'bg-white/25 text-white' : 'bg-black/20 text-white' : muted
-                    }`}>
-                      {day}
-                    </span>
-                    {dayEvs.length > 2 && (
-                      <span ref={badgeRefCb} className={`text-xs font-semibold ${muted}`}>+{dayEvs.length - 2}</span>
-                    )}
-                  </div>
-                  <div className="flex-1 flex flex-col gap-0.5 mt-0.5 overflow-hidden">
-                    {dayEvs.slice(0, 2).map(ev => (
-                      <div
-                        key={ev.id}
-                        className={`text-white text-xs font-semibold px-1.5 py-0.5 rounded flex items-center gap-1.5 transition-opacity ${ev.completed ? 'opacity-50' : ''}`}
-                        style={{ backgroundColor: eventColor(ev, categoryColors) }}
-                      >
-                        <button
-                          onClick={e => { e.stopPropagation(); toggleComplete(ev.id); }}
-                          className="shrink-0 rounded-full border border-white/60 flex items-center justify-center hover:scale-125 transition-transform"
-                          style={{ width: 8, height: 8, minWidth: 8, backgroundColor: ev.completed ? 'rgba(255,255,255,0.85)' : 'transparent' }}
-                        >
-                          {ev.completed && (
-                            <svg width="4" height="4" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="4">
-                              <path d="M5 13l4 4L19 7"/>
-                            </svg>
-                          )}
-                        </button>
-                        <div
-                          onClick={e => { e.stopPropagation(); openEdit(ev); }}
-                          className={`truncate flex items-center gap-0.5 cursor-pointer hover:opacity-80 transition-opacity flex-1 min-w-0 ${ev.completed ? 'line-through' : ''}`}
-                        >
-                          {ev.time && <span className="shrink-0 opacity-80">{ev.time.slice(0, 5)}</span>}
-                          <span className="truncate">{ev.title}</span>
+                  {isMobile ? (
+                    /* Mobile: day number + event count badge */
+                    <>
+                      <span className={`text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full mx-auto mt-0.5 ${
+                        isToday ? isDarkTheme ? 'bg-white/25 text-white' : 'bg-black/20 text-white' : muted
+                      }`}>{day}</span>
+                      {dayEvs.length > 0 && (
+                        <div className="flex-1 flex items-center justify-center mt-1">
+                          <span
+                            ref={dayEvs.length > 0 ? badgeRefCb : undefined}
+                            className="text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center leading-none"
+                            style={{ backgroundColor: eventColor(dayEvs[0], categoryColors) }}
+                          >
+                            {dayEvs.length}
+                          </span>
                         </div>
+                      )}
+                    </>
+                  ) : (
+                    /* Desktop: day number + event pills */
+                    <>
+                      <div className="flex items-center justify-between shrink-0">
+                        <span className={`text-xs font-bold w-4 h-4 flex items-center justify-center rounded-full ${
+                          isToday ? isDarkTheme ? 'bg-white/25 text-white' : 'bg-black/20 text-white' : muted
+                        }`}>
+                          {day}
+                        </span>
+                        {dayEvs.length > 2 && (
+                          <span ref={badgeRefCb} className={`text-xs font-semibold ${muted}`}>+{dayEvs.length - 2}</span>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                      <div className="flex-1 flex flex-col gap-0.5 mt-0.5 overflow-hidden">
+                        {dayEvs.slice(0, 2).map(ev => (
+                          <div
+                            key={ev.id}
+                            className={`text-white text-xs font-semibold px-1.5 py-0.5 rounded flex items-center gap-1.5 transition-opacity ${ev.completed ? 'opacity-50' : ''}`}
+                            style={{ backgroundColor: eventColor(ev, categoryColors) }}
+                          >
+                            <button
+                              onClick={e => { e.stopPropagation(); toggleComplete(ev.id); }}
+                              className="shrink-0 rounded-full border border-white/60 flex items-center justify-center hover:scale-125 transition-transform"
+                              style={{ width: 8, height: 8, minWidth: 8, backgroundColor: ev.completed ? 'rgba(255,255,255,0.85)' : 'transparent' }}
+                            >
+                              {ev.completed && (
+                                <svg width="4" height="4" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="4">
+                                  <path d="M5 13l4 4L19 7"/>
+                                </svg>
+                              )}
+                            </button>
+                            <div
+                              onClick={e => { e.stopPropagation(); openEdit(ev); }}
+                              className={`truncate flex items-center gap-0.5 cursor-pointer hover:opacity-80 transition-opacity flex-1 min-w-0 ${ev.completed ? 'line-through' : ''}`}
+                            >
+                              {ev.time && <span className="shrink-0 opacity-80">{ev.time.slice(0, 5)}</span>}
+                              <span className="truncate">{ev.title}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               );
             })}
@@ -774,7 +838,7 @@ function EventCard({ ev, isDarkTheme, muted, text, onEdit, onDelete, onToggle, s
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-1">
           <p className={`text-base font-semibold leading-tight truncate ${ev.completed ? 'line-through' : text}`}>{ev.title}</p>
-          <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          <div className="event-card-actions flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
             <button onClick={() => onEdit(ev)} className={`p-0.5 ${muted} hover:opacity-60 transition-opacity`}>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
