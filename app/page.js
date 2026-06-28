@@ -218,14 +218,36 @@ export default function TodoApp() {
 
   const filteredTodos = effectiveTodos.filter((t) => selectedTag === 'all' || t.tag === selectedTag);
 
-  const activeTodos = applySortTo(filteredTodos.filter((t) => !t.completed));
-  const completedTodos = filteredTodos.filter((t) => t.completed);
+  // Calendar deadline items injected as virtual todos (next 7 days, personal mode only)
+  const calendarTodoItems = !inRoomMode ? upcomingDeadlines.map(ev => ({
+    id: ev.id,
+    text: ev.title,
+    completed: ev.completed,
+    priority: 'medium',
+    tag: ev.type || null,
+    dueDate: ev.date,
+    notes: ev.notes || '',
+    subtasks: [],
+    createdAt: ev.createdAt || ev.date,
+    _calendarEvent: true,
+  })).filter(t => selectedTag === 'all' || t.tag === selectedTag) : [];
 
+  const activeTodos = [
+    ...applySortTo(filteredTodos.filter((t) => !t.completed)),
+    ...calendarTodoItems.filter(t => !t.completed),
+  ];
+  const completedTodos = [
+    ...filteredTodos.filter((t) => t.completed),
+    ...calendarTodoItems.filter(t => t.completed),
+  ];
+
+  const totalAll = filteredTodos.length + calendarTodoItems.length;
+  const completedAll = filteredTodos.filter(t => t.completed).length + calendarTodoItems.filter(t => t.completed).length;
   const stats = {
-    total: filteredTodos.length,
+    total: totalAll,
     active: activeTodos.length,
     completed: completedTodos.length,
-    completion: filteredTodos.length ? Math.round((completedTodos.length / filteredTodos.length) * 100) : 0,
+    completion: totalAll ? Math.round((completedAll / totalAll) * 100) : 0,
   };
 
   const columns = [[], [], []];
@@ -307,10 +329,20 @@ export default function TodoApp() {
 
   function today() { return new Date().toISOString().split('T')[0]; }
 
+  // ── Calendar-aware toggle/delete (calendar items route to their own handler) ─
+  function smartToggle(id) {
+    if (calendarTodoItems.find(t => t.id === id)) calendarEvents.toggleComplete(id);
+    else effectiveToggleTodo(id);
+  }
+  function smartDelete(id) {
+    if (calendarTodoItems.find(t => t.id === id)) return; // deletions happen from calendar view
+    effectiveDeleteTodo(id);
+  }
+
   // ── Shared todo item props ──────────────────────────────────────────────────
   const todoItemProps = {
-    onToggle: effectiveToggleTodo,
-    onDelete: effectiveDeleteTodo,
+    onToggle: smartToggle,
+    onDelete: smartDelete,
     onEdit: effectiveEditTodo,
     onAddSubtask: effectiveAddSubtask,
     onToggleSubtask: effectiveToggleSub,
@@ -600,63 +632,6 @@ export default function TodoApp() {
               >
                 + list
               </button>
-            </div>
-          )}
-
-          {/* Upcoming calendar deadlines (next 7 days) */}
-          {!inRoomMode && upcomingDeadlines.length > 0 && (
-            <div className="mb-6">
-              <div className="flex items-center gap-2 mb-2">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={isDarkTheme ? 'text-gray-400' : isImageTheme ? 'text-white/80' : 'text-gray-500'}>
-                  <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
-                </svg>
-                <span className={`text-xs font-bold uppercase tracking-widest ${isDarkTheme ? 'text-gray-400' : isImageTheme ? 'text-white/80 drop-shadow' : 'text-gray-500'}`}>
-                  Deadlines this week
-                </span>
-              </div>
-              <div className="space-y-2">
-                {upcomingDeadlines.map(ev => {
-                  const evDate = new Date(ev.date + 'T00:00:00');
-                  const today = new Date(); today.setHours(0,0,0,0);
-                  const diffDays = Math.round((evDate - today) / 86400000);
-                  const dateLabel = diffDays === 0 ? 'Today' : diffDays === 1 ? 'Tomorrow' : evDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-                  const isOverdue = diffDays < 0;
-                  return (
-                    <div
-                      key={ev.id}
-                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl glass transition-all ${ev.completed ? 'opacity-50' : ''}`}
-                    >
-                      <button
-                        onClick={() => calendarEvents.toggleComplete(ev.id)}
-                        className={`shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
-                          ev.completed
-                            ? 'bg-gray-500 border-gray-500'
-                            : isDarkTheme ? 'border-gray-500 hover:border-gray-300' : 'border-gray-400 hover:border-gray-600'
-                        }`}
-                      >
-                        {ev.completed && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><path d="M5 13l4 4L19 7"/></svg>}
-                      </button>
-                      <span className={`flex-1 text-sm font-medium truncate ${ev.completed ? 'line-through' : ''} ${isDarkTheme ? 'text-gray-200' : isImageTheme ? 'text-white' : 'text-gray-800'}`}>
-                        {ev.title}
-                      </span>
-                      {ev.type && (
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${isDarkTheme ? 'bg-white/10 text-gray-300' : 'bg-black/8 text-gray-600'}`}>
-                          {ev.type}
-                        </span>
-                      )}
-                      <span className={`text-[11px] font-semibold shrink-0 px-2 py-0.5 rounded-lg ${
-                        isOverdue
-                          ? 'bg-rose-500/20 text-rose-500'
-                          : diffDays === 0
-                          ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
-                          : isDarkTheme ? 'bg-white/10 text-gray-300' : 'bg-black/8 text-gray-600'
-                      }`}>
-                        {dateLabel}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
           )}
 
