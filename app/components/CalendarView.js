@@ -563,7 +563,7 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                     if (isMobile && newDay !== null) setShowPanel(true);
                   }}
                   onDoubleClick={() => !isMobile && openNew(day)}
-                  className={`rounded-xl p-1 cursor-pointer border transition-all flex flex-col ${
+                  className={`rounded-xl p-1 cursor-pointer border transition-all flex flex-col overflow-hidden ${
                     isSelected
                       ? isDarkTheme ? 'border-white/50 bg-white/25' : 'border-black/25 bg-white/88'
                       : isToday
