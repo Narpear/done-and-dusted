@@ -232,8 +232,13 @@ function badgeRefCb(node) {
 }
 
 // ── Main component ──────────────────────────────────────────────────────────
-export default function CalendarView({ username, isDarkTheme, isImageTheme, currentTheme, isSidebarOpen }) {
-  const { events, addEvent, updateEvent, deleteEvent, toggleComplete } = useCalendarEvents(username);
+export default function CalendarView({ username, isDarkTheme, isImageTheme, currentTheme, isSidebarOpen, events: eventsProp, addEvent: addEventProp, updateEvent: updateEventProp, deleteEvent: deleteEventProp, toggleComplete: toggleCompleteProp }) {
+  const hookResult = useCalendarEvents(eventsProp ? null : username);
+  const events        = eventsProp        ?? hookResult.events;
+  const addEvent      = addEventProp      ?? hookResult.addEvent;
+  const updateEvent   = updateEventProp   ?? hookResult.updateEvent;
+  const deleteEvent   = deleteEventProp   ?? hookResult.deleteEvent;
+  const toggleComplete = toggleCompleteProp ?? hookResult.toggleComplete;
 
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {

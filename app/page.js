@@ -9,6 +9,7 @@ import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, vert
 import { THEMES, FONTS, KEYBOARD_SHORTCUTS } from './lib/constants';
 import { formatDate } from './lib/utils';
 import { useTodos } from './hooks/useTodos';
+import { useCalendarEvents } from './hooks/useCalendarEvents';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useUser } from './hooks/useUser';
 import { useRooms } from './hooks/useRooms';
@@ -79,6 +80,24 @@ export default function TodoApp() {
 
   // ── User identity ──────────────────────────────────────────────────────────
   const { username, color: userColor, ready: userReady, signup, login, logout, needsSetup } = useUser();
+
+  // ── Calendar events (shared state for todo-calendar sync) ─────────────────
+  const calendarEvents = useCalendarEvents(username);
+  const upcomingDeadlines = (() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const cutoff = new Date(today);
+    cutoff.setDate(cutoff.getDate() + 7);
+    const todayStr = today.toISOString().split('T')[0];
+    const cutoffStr = cutoff.toISOString().split('T')[0];
+    return calendarEvents.events
+      .filter(e => {
+        const start = e.date;
+        const end = e.endDate || e.date;
+        return end >= todayStr && start <= cutoffStr;
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
+  })();
 
   // ── Rooms ──────────────────────────────────────────────────────────────────
   const [activeRoom, setActiveRoom] = useState(null);
@@ -434,6 +453,11 @@ export default function TodoApp() {
             isImageTheme={isImageTheme}
             currentTheme={currentTheme}
             isSidebarOpen={isSidebarOpen}
+            events={calendarEvents.events}
+            addEvent={calendarEvents.addEvent}
+            updateEvent={calendarEvents.updateEvent}
+            deleteEvent={calendarEvents.deleteEvent}
+            toggleComplete={calendarEvents.toggleComplete}
           />
         ) : (
         <div className="px-4 sm:px-10 md:px-20 lg:px-30 py-6 md:py-10">
@@ -576,6 +600,63 @@ export default function TodoApp() {
               >
                 + list
               </button>
+            </div>
+          )}
+
+          {/* Upcoming calendar deadlines (next 7 days) */}
+          {!inRoomMode && upcomingDeadlines.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={isDarkTheme ? 'text-gray-400' : isImageTheme ? 'text-white/80' : 'text-gray-500'}>
+                  <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                </svg>
+                <span className={`text-xs font-bold uppercase tracking-widest ${isDarkTheme ? 'text-gray-400' : isImageTheme ? 'text-white/80 drop-shadow' : 'text-gray-500'}`}>
+                  Deadlines this week
+                </span>
+              </div>
+              <div className="space-y-2">
+                {upcomingDeadlines.map(ev => {
+                  const evDate = new Date(ev.date + 'T00:00:00');
+                  const today = new Date(); today.setHours(0,0,0,0);
+                  const diffDays = Math.round((evDate - today) / 86400000);
+                  const dateLabel = diffDays === 0 ? 'Today' : diffDays === 1 ? 'Tomorrow' : evDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+                  const isOverdue = diffDays < 0;
+                  return (
+                    <div
+                      key={ev.id}
+                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl glass transition-all ${ev.completed ? 'opacity-50' : ''}`}
+                    >
+                      <button
+                        onClick={() => calendarEvents.toggleComplete(ev.id)}
+                        className={`shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                          ev.completed
+                            ? 'bg-gray-500 border-gray-500'
+                            : isDarkTheme ? 'border-gray-500 hover:border-gray-300' : 'border-gray-400 hover:border-gray-600'
+                        }`}
+                      >
+                        {ev.completed && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><path d="M5 13l4 4L19 7"/></svg>}
+                      </button>
+                      <span className={`flex-1 text-sm font-medium truncate ${ev.completed ? 'line-through' : ''} ${isDarkTheme ? 'text-gray-200' : isImageTheme ? 'text-white' : 'text-gray-800'}`}>
+                        {ev.title}
+                      </span>
+                      {ev.type && (
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${isDarkTheme ? 'bg-white/10 text-gray-300' : 'bg-black/8 text-gray-600'}`}>
+                          {ev.type}
+                        </span>
+                      )}
+                      <span className={`text-[11px] font-semibold shrink-0 px-2 py-0.5 rounded-lg ${
+                        isOverdue
+                          ? 'bg-rose-500/20 text-rose-500'
+                          : diffDays === 0
+                          ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                          : isDarkTheme ? 'bg-white/10 text-gray-300' : 'bg-black/8 text-gray-600'
+                      }`}>
+                        {dateLabel}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
