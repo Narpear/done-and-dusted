@@ -563,7 +563,7 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                     if (isMobile && newDay !== null) setShowPanel(true);
                   }}
                   onDoubleClick={() => !isMobile && openNew(day)}
-                  className={`rounded-xl p-1 cursor-pointer border transition-all flex flex-col overflow-hidden ${
+                  className={`rounded-xl p-1 cursor-pointer border transition-all flex flex-col ${
                     isSelected
                       ? isDarkTheme ? 'border-white/50 bg-white/25' : 'border-black/25 bg-white/88'
                       : isToday
@@ -598,12 +598,9 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                         }`}>
                           {day}
                         </span>
-                        {dayEvs.length > 2 && (
-                          <span ref={badgeRefCb} className={`text-xs font-semibold ${muted}`}>+{dayEvs.length - 2}</span>
-                        )}
                       </div>
-                      <div className="flex-1 flex flex-col gap-0.5 mt-0.5 overflow-hidden">
-                        {dayEvs.slice(0, 2).map(ev => (
+                      <div className="flex-1 flex flex-col gap-0.5 mt-0.5 overflow-y-auto scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+                        {dayEvs.map(ev => (
                           <div
                             key={ev.id}
                             className={`text-white text-xs font-semibold px-1.5 py-0.5 rounded flex items-center gap-1.5 transition-opacity ${ev.completed ? 'opacity-50' : ''}`}
