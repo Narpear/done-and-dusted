@@ -533,7 +533,7 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
 
         {/* Calendar grid */}
         <div className={`${isMobile ? 'flex-1 overflow-y-auto' : 'flex-1 overflow-hidden'} flex flex-col p-2 gap-1`}>
-          <div className={`grid grid-cols-7 rounded-xl overflow-hidden ${dayHeaderBg}`}>
+          <div className={`shrink-0 grid grid-cols-7 rounded-xl overflow-hidden ${dayHeaderBg}`}>
             {DAYS.map(d => (
               <div key={d} className={`py-1.5 text-center text-xs font-bold uppercase tracking-widest ${muted}`}>{d}</div>
             ))}
@@ -541,7 +541,7 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
 
           <div
             ref={gridRef}
-            className={`${isMobile ? '' : 'flex-1'} grid grid-cols-7 gap-1`}
+            className={`${isMobile ? '' : 'flex-1 min-h-0'} grid grid-cols-7 gap-1`}
             style={{ gridTemplateRows: `repeat(${numRows}, ${isMobile ? '68px' : '1fr'})` }}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
