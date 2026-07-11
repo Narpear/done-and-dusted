@@ -48,6 +48,19 @@ export default function TodoApp() {
   const [usernameConfirmInput, setUsernameConfirmInput] = useState('');
   function toggleSection(s) { setOpenSection((p) => p === s ? null : s); }
 
+  // Calendar todo items dismissed from the task list (doesn't touch the calendar event)
+  const [dismissedCalendarIds, setDismissedCalendarIds] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('dismissedCalendarTodoIds') || '[]')); }
+    catch { return new Set(); }
+  });
+  function dismissCalendarTodoItem(id) {
+    setDismissedCalendarIds((prev) => {
+      const next = new Set(prev).add(id);
+      try { localStorage.setItem('dismissedCalendarTodoIds', JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  }
+
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 767px)');
@@ -219,18 +232,20 @@ export default function TodoApp() {
   const filteredTodos = effectiveTodos.filter((t) => selectedTag === 'all' || t.tag === selectedTag);
 
   // Calendar deadline items injected as virtual todos (next 7 days, personal mode only)
-  const calendarTodoItems = !inRoomMode ? upcomingDeadlines.map(ev => ({
-    id: ev.id,
-    text: ev.title,
-    completed: ev.completed,
-    priority: 'medium',
-    tag: ev.type || null,
-    dueDate: ev.date,
-    notes: ev.notes || '',
-    subtasks: [],
-    createdAt: ev.createdAt || ev.date,
-    _calendarEvent: true,
-  })).filter(t => selectedTag === 'all' || t.tag === selectedTag) : [];
+  const calendarTodoItems = !inRoomMode ? upcomingDeadlines
+    .filter(ev => !dismissedCalendarIds.has(ev.id))
+    .map(ev => ({
+      id: ev.id,
+      text: ev.title,
+      completed: ev.completed,
+      priority: 'medium',
+      tag: ev.type || null,
+      dueDate: ev.date,
+      notes: ev.notes || '',
+      subtasks: [],
+      createdAt: ev.createdAt || ev.date,
+      _calendarEvent: true,
+    })).filter(t => selectedTag === 'all' || t.tag === selectedTag) : [];
 
   const activeTodos = [
     ...applySortTo(filteredTodos.filter((t) => !t.completed)),
@@ -335,7 +350,7 @@ export default function TodoApp() {
     else effectiveToggleTodo(id);
   }
   function smartDelete(id) {
-    if (calendarTodoItems.find(t => t.id === id)) return; // deletions happen from calendar view
+    if (calendarTodoItems.find(t => t.id === id)) { dismissCalendarTodoItem(id); return; }
     effectiveDeleteTodo(id);
   }
 
