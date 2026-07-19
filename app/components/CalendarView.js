@@ -227,10 +227,6 @@ function TagsDropdown({ allTags, filterTags, onToggle, onClearAll, isDarkTheme, 
   );
 }
 
-function badgeRefCb(node) {
-  if (node) gsap.fromTo(node, { y: -3, opacity: 0 }, { y: 0, opacity: 1, duration: 0.22, ease: 'back.out(2)', clearProps: 'all' });
-}
-
 // ── Main component ──────────────────────────────────────────────────────────
 export default function CalendarView({ username, isDarkTheme, isImageTheme, currentTheme, isSidebarOpen, events: eventsProp, addEvent: addEventProp, updateEvent: updateEventProp, deleteEvent: deleteEventProp, toggleComplete: toggleCompleteProp }) {
   const hookResult = useCalendarEvents(eventsProp ? null : username);
@@ -533,106 +529,162 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
 
         {/* Calendar grid */}
         <div className={`${isMobile ? 'flex-1 overflow-y-auto' : 'flex-1 overflow-hidden'} flex flex-col p-2 gap-1`}>
-          <div className={`shrink-0 grid grid-cols-7 rounded-xl overflow-hidden ${dayHeaderBg}`}>
-            {DAYS.map(d => (
-              <div key={d} className={`py-1.5 text-center text-xs font-bold uppercase tracking-widest ${muted}`}>{d}</div>
-            ))}
-          </div>
+          {!isMobile && (
+            <div className={`shrink-0 grid grid-cols-7 rounded-xl overflow-hidden ${dayHeaderBg}`}>
+              {DAYS.map(d => (
+                <div key={d} className={`py-1.5 text-center text-xs font-bold uppercase tracking-widest ${muted}`}>{d}</div>
+              ))}
+            </div>
+          )}
 
-          <div
-            ref={gridRef}
-            className={`${isMobile ? '' : 'flex-1 min-h-0'} grid grid-cols-7 gap-1`}
-            style={{ gridTemplateRows: `repeat(${numRows}, ${isMobile ? '68px' : '1fr'})` }}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-          >
-            {paddedCells.map((day, idx) => {
-              if (!day) return <div key={`e-${idx}`} className="rounded-xl" />;
-              const ds      = toDateStr(year, month, day);
-              const dayEvs  = eventsForDay(day);
-              const isToday    = ds === todayStr;
-              const isSelected = selectedDay === day;
-              return (
-                <div
-                  key={`${day}-${idx}`}
-                  data-cell
-                  onClick={e => {
-                    gsap.fromTo(e.currentTarget, { scale: 0.97 }, { scale: 1, duration: 0.22, ease: 'back.out(2)', clearProps: 'scale' });
-                    const newDay = day === selectedDay ? null : day;
-                    setSelectedDay(newDay);
-                    if (isMobile && newDay !== null) setShowPanel(true);
-                  }}
-                  onDoubleClick={() => !isMobile && openNew(day)}
-                  className={`rounded-xl p-1 cursor-pointer border transition-all flex flex-col overflow-hidden ${
-                    isSelected
-                      ? isDarkTheme ? 'border-white/50 bg-white/25' : 'border-black/25 bg-white/88'
-                      : isToday
-                      ? isDarkTheme ? 'bg-white/20 border-white/35' : 'bg-white/88 border-black/18'
-                      : `${cellBg} border-transparent`
-                  }`}
-                >
-                  {isMobile ? (
-                    /* Mobile: day number + event count badge */
-                    <>
-                      <span className={`text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full mx-auto mt-0.5 ${
+          {isMobile ? (
+            /* Mobile: vertical agenda list — one row per day, events listed inline, scrollable */
+            <div
+              ref={gridRef}
+              className="flex flex-col gap-1.5"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
+              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
+                const ds         = toDateStr(year, month, day);
+                const dayEvs     = eventsForDay(day);
+                const isToday    = ds === todayStr;
+                const isSelected = selectedDay === day;
+                const weekday    = DAYS[new Date(year, month, day).getDay()];
+                return (
+                  <div
+                    key={day}
+                    data-cell
+                    onClick={e => {
+                      gsap.fromTo(e.currentTarget, { scale: 0.99 }, { scale: 1, duration: 0.22, ease: 'back.out(2)', clearProps: 'scale' });
+                      setSelectedDay(day === selectedDay ? null : day);
+                    }}
+                    className={`rounded-xl p-2.5 cursor-pointer border transition-all flex gap-3 items-start ${
+                      isSelected
+                        ? isDarkTheme ? 'border-white/50 bg-white/25' : 'border-black/25 bg-white/88'
+                        : isToday
+                        ? isDarkTheme ? 'bg-white/20 border-white/35' : 'bg-white/88 border-black/18'
+                        : `${cellBg} border-transparent`
+                    }`}
+                  >
+                    <div className="flex flex-col items-center shrink-0 w-9 pt-0.5">
+                      <span className={`text-[10px] font-bold uppercase tracking-wider ${muted}`}>{weekday}</span>
+                      <span className={`text-sm font-bold w-6 h-6 flex items-center justify-center rounded-full mt-0.5 ${
                         isToday ? isDarkTheme ? 'bg-white/25 text-white' : 'bg-black/20 text-white' : muted
                       }`}>{day}</span>
-                      {dayEvs.length > 0 && (
-                        <div className="flex-1 flex items-center justify-center mt-1">
-                          <span
-                            ref={dayEvs.length > 0 ? badgeRefCb : undefined}
-                            className="text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center leading-none"
-                            style={{ backgroundColor: eventColor(dayEvs[0], categoryColors) }}
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col gap-1 pt-0.5">
+                      {dayEvs.length === 0 ? (
+                        <span className={`text-xs ${muted} opacity-50 py-1`}>No events</span>
+                      ) : dayEvs.map(ev => (
+                        <div
+                          key={ev.id}
+                          className={`text-white text-xs font-semibold px-2 py-1 rounded-lg flex items-center gap-1.5 transition-opacity ${ev.completed ? 'opacity-50' : ''}`}
+                          style={{ backgroundColor: eventColor(ev, categoryColors) }}
+                        >
+                          <button
+                            onClick={e => { e.stopPropagation(); toggleComplete(ev.id); }}
+                            className="shrink-0 rounded-full border border-white/60 flex items-center justify-center"
+                            style={{ width: 12, height: 12, minWidth: 12, backgroundColor: ev.completed ? 'rgba(255,255,255,0.85)' : 'transparent' }}
                           >
-                            {dayEvs.length}
-                          </span>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    /* Desktop: day number + event pills */
-                    <>
-                      <div className="flex items-center justify-between shrink-0">
-                        <span className={`text-xs font-bold w-4 h-4 flex items-center justify-center rounded-full ${
-                          isToday ? isDarkTheme ? 'bg-white/25 text-white' : 'bg-black/20 text-white' : muted
-                        }`}>
-                          {day}
-                        </span>
-                      </div>
-                      <div className="flex-1 flex flex-col gap-0.5 mt-0.5 overflow-y-auto scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
-                        {dayEvs.map(ev => (
+                            {ev.completed && (
+                              <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="4">
+                                <path d="M5 13l4 4L19 7"/>
+                              </svg>
+                            )}
+                          </button>
                           <div
-                            key={ev.id}
-                            className={`text-white text-xs font-semibold px-1.5 py-0.5 rounded flex items-center gap-1.5 transition-opacity ${ev.completed ? 'opacity-50' : ''}`}
-                            style={{ backgroundColor: eventColor(ev, categoryColors) }}
+                            onClick={e => { e.stopPropagation(); openEdit(ev); }}
+                            className={`truncate flex items-center gap-1 flex-1 min-w-0 ${ev.completed ? 'line-through' : ''}`}
                           >
-                            <button
-                              onClick={e => { e.stopPropagation(); toggleComplete(ev.id); }}
-                              className="shrink-0 rounded-full border border-white/60 flex items-center justify-center hover:scale-125 transition-transform"
-                              style={{ width: 8, height: 8, minWidth: 8, backgroundColor: ev.completed ? 'rgba(255,255,255,0.85)' : 'transparent' }}
-                            >
-                              {ev.completed && (
-                                <svg width="4" height="4" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="4">
-                                  <path d="M5 13l4 4L19 7"/>
-                                </svg>
-                              )}
-                            </button>
-                            <div
-                              onClick={e => { e.stopPropagation(); openEdit(ev); }}
-                              className={`truncate flex items-center gap-0.5 cursor-pointer hover:opacity-80 transition-opacity flex-1 min-w-0 ${ev.completed ? 'line-through' : ''}`}
-                            >
-                              {ev.time && <span className="shrink-0 opacity-80">{ev.time.slice(0, 5)}</span>}
-                              <span className="truncate">{ev.title}</span>
-                            </div>
+                            {ev.time && <span className="shrink-0 opacity-80">{ev.time.slice(0, 5)}</span>}
+                            <span className="truncate">{ev.title}</span>
                           </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={e => { e.stopPropagation(); openNew(day); }}
+                      className={`shrink-0 p-1 rounded-lg mt-0.5 ${muted} hover:opacity-60 transition-opacity`}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* Desktop: month grid */
+            <div
+              ref={gridRef}
+              className="flex-1 min-h-0 grid grid-cols-7 gap-1"
+              style={{ gridTemplateRows: `repeat(${numRows}, 1fr)` }}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
+              {paddedCells.map((day, idx) => {
+                if (!day) return <div key={`e-${idx}`} className="rounded-xl" />;
+                const ds      = toDateStr(year, month, day);
+                const dayEvs  = eventsForDay(day);
+                const isToday    = ds === todayStr;
+                const isSelected = selectedDay === day;
+                return (
+                  <div
+                    key={`${day}-${idx}`}
+                    data-cell
+                    onClick={e => {
+                      gsap.fromTo(e.currentTarget, { scale: 0.97 }, { scale: 1, duration: 0.22, ease: 'back.out(2)', clearProps: 'scale' });
+                      setSelectedDay(day === selectedDay ? null : day);
+                    }}
+                    onDoubleClick={() => openNew(day)}
+                    className={`rounded-xl p-1 cursor-pointer border transition-all flex flex-col overflow-hidden ${
+                      isSelected
+                        ? isDarkTheme ? 'border-white/50 bg-white/25' : 'border-black/25 bg-white/88'
+                        : isToday
+                        ? isDarkTheme ? 'bg-white/20 border-white/35' : 'bg-white/88 border-black/18'
+                        : `${cellBg} border-transparent`
+                    }`}
+                  >
+                    <div className="flex items-center justify-between shrink-0">
+                      <span className={`text-xs font-bold w-4 h-4 flex items-center justify-center rounded-full ${
+                        isToday ? isDarkTheme ? 'bg-white/25 text-white' : 'bg-black/20 text-white' : muted
+                      }`}>
+                        {day}
+                      </span>
+                    </div>
+                    <div className="flex-1 flex flex-col gap-0.5 mt-0.5 overflow-y-auto scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+                      {dayEvs.map(ev => (
+                        <div
+                          key={ev.id}
+                          className={`text-white text-xs font-semibold px-1.5 py-0.5 rounded flex items-center gap-1.5 transition-opacity ${ev.completed ? 'opacity-50' : ''}`}
+                          style={{ backgroundColor: eventColor(ev, categoryColors) }}
+                        >
+                          <button
+                            onClick={e => { e.stopPropagation(); toggleComplete(ev.id); }}
+                            className="shrink-0 rounded-full border border-white/60 flex items-center justify-center hover:scale-125 transition-transform"
+                            style={{ width: 8, height: 8, minWidth: 8, backgroundColor: ev.completed ? 'rgba(255,255,255,0.85)' : 'transparent' }}
+                          >
+                            {ev.completed && (
+                              <svg width="4" height="4" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="4">
+                                <path d="M5 13l4 4L19 7"/>
+                              </svg>
+                            )}
+                          </button>
+                          <div
+                            onClick={e => { e.stopPropagation(); openEdit(ev); }}
+                            className={`truncate flex items-center gap-0.5 cursor-pointer hover:opacity-80 transition-opacity flex-1 min-w-0 ${ev.completed ? 'line-through' : ''}`}
+                          >
+                            {ev.time && <span className="shrink-0 opacity-80">{ev.time.slice(0, 5)}</span>}
+                            <span className="truncate">{ev.title}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Side panel — right rail on desktop, bottom sheet on mobile */}
