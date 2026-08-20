@@ -37,7 +37,13 @@ export default function TodoApp() {
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [selectedTag, setSelectedTag] = useState('all');
-  const [activeView, setActiveView] = useState('tasks'); // 'tasks' | 'calendar'
+  const [activeView, setActiveView] = useState(() => { // 'tasks' | 'calendar' | 'stats'
+    try { return localStorage.getItem('doneAndDustedActiveView') || 'tasks'; }
+    catch { return 'tasks'; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('doneAndDustedActiveView', activeView); } catch {}
+  }, [activeView]);
 
   // Bulk selection
   const [isBulkMode, setIsBulkMode] = useState(false);
@@ -94,6 +100,7 @@ export default function TodoApp() {
 
   // ── User identity ──────────────────────────────────────────────────────────
   const { username, color: userColor, ready: userReady, signup, login, logout, needsSetup } = useUser();
+  const canSeeStats = username === 'Narpear' || username === 'P4van17';
 
   // ── Calendar events (shared state for todo-calendar sync) ─────────────────
   const calendarEvents = useCalendarEvents(username);
@@ -495,7 +502,7 @@ export default function TodoApp() {
 
       {/* Main content */}
       <div className={`flex-1 min-w-0 ${activeView === 'calendar' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-        {activeView === 'stats' ? (
+        {activeView === 'stats' && canSeeStats ? (
           <StatsView
             username={username}
             isDarkTheme={isDarkTheme}

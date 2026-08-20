@@ -139,7 +139,7 @@ export function useTodos() {
       // Load from Supabase — overrides localStorage so other devices' changes win
       const { data } = await sb
         .from('personal_todos')
-        .select('lists, current_list_id')
+        .select('lists, current_list_id, theme, font, mode, layout, sort_by')
         .eq('username', username)
         .maybeSingle();
 
@@ -147,6 +147,11 @@ export function useTodos() {
         ignoreSyncRef.current = true;
         if (data.lists) setLists(data.lists);
         if (data.current_list_id) setCurrentListId(data.current_list_id);
+        if (data.theme)   setTheme(data.theme);
+        if (data.font)    setFont(data.font);
+        if (data.mode)    setMode(data.mode);
+        if (data.layout)  setLayout(data.layout);
+        if (data.sort_by) setSortBy(data.sort_by);
         ignoreSyncRef.current = false;
       }
 
@@ -161,6 +166,11 @@ export function useTodos() {
           const row = payload.new;
           if (row?.lists)            setLists(row.lists);
           if (row?.current_list_id)  setCurrentListId(row.current_list_id);
+          if (row?.theme)            setTheme(row.theme);
+          if (row?.font)             setFont(row.font);
+          if (row?.mode)             setMode(row.mode);
+          if (row?.layout)           setLayout(row.layout);
+          if (row?.sort_by)          setSortBy(row.sort_by);
         })
         .subscribe();
     })();
@@ -186,6 +196,11 @@ export function useTodos() {
           username,
           lists,
           current_list_id: currentListId,
+          theme,
+          font,
+          mode,
+          layout,
+          sort_by: sortBy,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'username' });
       } catch {}
@@ -193,7 +208,7 @@ export function useTodos() {
     }, 800);
 
     return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
-  }, [lists, currentListId]);
+  }, [lists, currentListId, theme, font, mode, layout, sortBy]);
 
   // Cleanup timers on unmount
   useEffect(() => () => {

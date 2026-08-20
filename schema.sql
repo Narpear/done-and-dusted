@@ -131,6 +131,38 @@ CREATE TABLE room_presence (
 );
 
 -- ------------------------------------------------------------
+-- Personal todos + preferences  (cross-device sync for solo lists,
+-- theme, font, mode, layout, sort order — one row per user)
+-- Table predates this schema file; the block below is idempotent
+-- so it's safe to run even if it already exists.
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS personal_todos (
+  username        VARCHAR(50) PRIMARY KEY REFERENCES users(username) ON DELETE CASCADE,
+  lists           JSONB       NOT NULL DEFAULT '[]',
+  current_list_id VARCHAR(50),
+  theme           VARCHAR(30),
+  font            VARCHAR(20),
+  mode            VARCHAR(20),
+  layout          VARCHAR(20),
+  sort_by         VARCHAR(20),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE personal_todos ADD COLUMN IF NOT EXISTS theme   VARCHAR(30);
+ALTER TABLE personal_todos ADD COLUMN IF NOT EXISTS font    VARCHAR(20);
+ALTER TABLE personal_todos ADD COLUMN IF NOT EXISTS mode    VARCHAR(20);
+ALTER TABLE personal_todos ADD COLUMN IF NOT EXISTS layout  VARCHAR(20);
+ALTER TABLE personal_todos ADD COLUMN IF NOT EXISTS sort_by VARCHAR(20);
+
+ALTER TABLE personal_todos ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'personal_todos' AND policyname = 'open') THEN
+    CREATE POLICY "open" ON personal_todos FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+END $$;
+
+-- ------------------------------------------------------------
 -- Study logs  (Stats page — one entry per user per day)
 -- ------------------------------------------------------------
 CREATE TABLE study_logs (

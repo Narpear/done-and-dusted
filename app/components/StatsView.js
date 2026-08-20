@@ -208,7 +208,9 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide opacity-60">Today&apos;s rank</p>
                 <p className="text-2xl font-extrabold" style={{ color: todayRank.color }}>{todayRank.name}</p>
-                <p className="text-xs font-medium opacity-60 mt-0.5">{todayHours}h studied today</p>
+                <p className="text-xs font-medium opacity-60 mt-0.5">
+                  {todayHours > 0 ? `${todayHours}h studied today` : 'Nothing logged yet today'}
+                </p>
               </div>
             </div>
 
