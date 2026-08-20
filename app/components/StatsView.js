@@ -5,6 +5,7 @@ import { useStudyLog } from '../hooks/useStudyLog';
 import { getRank, RANKS, UNRANKED } from '../lib/ranks';
 
 const ASCENDING_RANKS = [...RANKS].reverse(); // iron → radiant
+const MAX_ICON_RETRIES = 2;
 
 function todayStr() {
   const d = new Date();
@@ -41,17 +42,32 @@ function computeStreak(logs) {
   return streak;
 }
 
-function RankIcon({ rank, size }) {
+// Retries a couple of times on error (transient network hiccups) before giving up silently.
+function RankIconInner({ rank, size }) {
+  const [attempt, setAttempt] = useState(0);
+  const [failed, setFailed] = useState(false);
+
+  if (failed) return <div style={{ width: size, height: size }} />;
+
   return (
     <img
-      src={rank.icon}
+      key={attempt}
+      src={attempt === 0 ? rank.icon : `${rank.icon}?retry=${attempt}`}
       alt={rank.name}
       width={size}
       height={size}
-      style={{ filter: `drop-shadow(0 2px 6px ${rank.color}88)` }}
-      onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+      className="shrink-0"
+      onError={() => {
+        if (attempt >= MAX_ICON_RETRIES) setFailed(true);
+        else setAttempt(a => a + 1);
+      }}
     />
   );
+}
+
+// Keyed on the icon path so a rank change (e.g. hero updating live) starts retries fresh.
+function RankIcon({ rank, size }) {
+  return <RankIconInner key={rank.icon} rank={rank} size={size} />;
 }
 
 function RankBadge({ hours, size = 40 }) {
@@ -64,14 +80,34 @@ function RankBadge({ hours, size = 40 }) {
   );
 }
 
+function HistoryEntry({ log, textPrimary, textSecondary }) {
+  const rank = getRank(log.hours);
+  return (
+    <div className="glass rounded-xl shadow-md p-4 border-l-4" style={{ borderLeftColor: rank.color }}>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className={`text-sm font-bold ${textPrimary}`}>
+          {new Date(log.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+        </span>
+        <RankBadge hours={log.hours} size={20} />
+      </div>
+      <p className={`text-xs font-semibold mb-1.5 ${textSecondary}`}>{log.hours}h studied</p>
+      {log.notes && (
+        <ul className={`list-disc list-inside text-sm space-y-0.5 ${textSecondary}`}>
+          {log.notes.split('\n').filter(Boolean).map((line, i) => <li key={i}>{line}</li>)}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function StatsView({ username, isDarkTheme, isImageTheme, currentTheme }) {
   const { logs, saveLog } = useStudyLog(username);
   const [date, setDate] = useState(todayStr());
   const [hours, setHours] = useState('');
   const [notes, setNotes] = useState('');
   const [saved, setSaved] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
-  const headingStyle   = isImageTheme ? { color: currentTheme?.titleColor } : undefined;
   const subtleStyle    = isImageTheme ? { color: currentTheme?.textColor } : undefined;
   const textPrimary    = isImageTheme ? '' : isDarkTheme ? 'text-white' : 'text-gray-900';
   const textSecondary  = isImageTheme ? '' : isDarkTheme ? 'text-gray-400' : 'text-gray-500';
@@ -115,160 +151,182 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
 
   const totalHours = logs.reduce((sum, l) => sum + (Number(l.hours) || 0), 0);
   const daysLogged = logs.length;
-  const avgHours = daysLogged > 0 ? totalHours / daysLogged : 0;
   const streak = computeStreak(logs);
   const bestHours = logs.reduce((max, l) => Math.max(max, Number(l.hours) || 0), 0);
   const bestRank = daysLogged > 0 ? getRank(bestHours) : UNRANKED;
 
   return (
-    <div className="px-4 sm:px-10 md:px-20 lg:px-30 py-6 md:py-10 max-w-3xl">
-      <h1 className="text-2xl font-bold mb-1">
-        <span className="gradient-text" style={isImageTheme ? { WebkitTextFillColor: currentTheme?.titleColor } : undefined}>
-          Stats
-        </span>
-      </h1>
-      <p className={`text-sm mb-7 ${textSecondary}`} style={subtleStyle}>Log your study hours and climb the ranks.</p>
-
-      {/* Hero — today's rank */}
-      <div className="glass rounded-2xl shadow-xl p-6 mb-5 relative overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-20 pointer-events-none"
-          style={{ background: `radial-gradient(circle at 15% 20%, ${todayRank.color}, transparent 60%)` }}
-        />
-        <div className="relative flex items-center justify-between flex-wrap gap-5">
-          <div className="flex items-center gap-4">
-            <div
-              className="w-20 h-20 rounded-2xl flex items-center justify-center shrink-0"
-              style={{ background: `${todayRank.color}22`, boxShadow: `0 0 30px ${todayRank.color}44` }}
-            >
-              <RankIcon rank={todayRank} size={52} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide opacity-60">Today&apos;s rank</p>
-              <p className="text-2xl font-extrabold" style={{ color: todayRank.color }}>{todayRank.name}</p>
-              <p className="text-xs font-medium opacity-60 mt-0.5">{todayHours}h studied today</p>
-            </div>
-          </div>
-
-          {upcoming && (
-            <div className="flex-1 min-w-45">
-              <div className="flex items-center justify-between text-xs font-semibold mb-1.5 opacity-70">
-                <span>Next: {upcoming.next.name}</span>
-                <span>{upcoming.remaining}h to go</span>
-              </div>
-              <div className="w-full h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${upcoming.progress}%`, background: upcoming.next.color }}
-                />
-              </div>
-            </div>
-          )}
-          {!upcoming && (
-            <p className="text-sm font-bold" style={{ color: todayRank.color }}>Max rank reached 🔥</p>
-          )}
+    <div className="px-4 sm:px-10 md:px-20 lg:px-30 py-6 md:py-10">
+      <div className="flex items-start justify-between gap-4 mb-2">
+        <div>
+          <h1 className="text-3xl md:text-5xl font-bold mb-2">
+            <span className="gradient-text" style={isImageTheme ? { WebkitTextFillColor: currentTheme?.titleColor } : undefined}>
+              Stats
+            </span>
+          </h1>
+          <p className={`text-sm sm:text-base font-medium ${textSecondary}`} style={subtleStyle}>
+            Log your study hours and climb the ranks.
+          </p>
         </div>
-      </div>
-
-      {/* All-time stat tiles */}
-      <div className="glass rounded-2xl shadow-lg p-5 mb-8">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <Stat value={totalHours.toFixed(1)} label="Total hours" color="#3b82f6" />
-          <Stat value={daysLogged} label="Days logged" color="#8b5cf6" />
-          <Stat value={streak} label="Day streak" color="#f97316" />
-          <Stat value={bestRank.name} label="Best rank" color={bestRank.color} small />
-        </div>
-      </div>
-
-      {/* Log entry form */}
-      <form onSubmit={handleSave} className="glass rounded-2xl shadow-xl p-6 mb-8">
-        <h2 className={`text-sm font-bold mb-4 ${textPrimary}`}>Log a study session</h2>
-        <div className="flex flex-col sm:flex-row gap-4 mb-4">
-          <div className="flex-1">
-            <label className={`block text-xs font-semibold mb-1.5 ${textSecondary}`}>Date</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => handleDateChange(e.target.value)}
-              className={inputClass}
-            />
-          </div>
-          <div className="flex-1">
-            <label className={`block text-xs font-semibold mb-1.5 ${textSecondary}`}>Hours studied</label>
-            <input
-              type="number"
-              step="0.25"
-              min="0"
-              value={hours}
-              onChange={(e) => setHours(e.target.value)}
-              placeholder="0"
-              className={inputClass}
-            />
-          </div>
-        </div>
-
-        {hours !== '' && (
-          <div className={`flex items-center gap-2 mb-4 px-3 py-2 rounded-xl w-fit ${isDarkTheme ? 'bg-white/5' : 'bg-black/5'}`}>
-            <RankBadge hours={hours} size={24} />
-          </div>
-        )}
-
-        <label className={`block text-xs font-semibold mb-1.5 ${textSecondary}`}>What did you study? (one point per line)</label>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={4}
-          placeholder={'e.g.\nReviewed lecture 4 slides\nSolved 10 practice problems'}
-          className={`${inputClass} mb-4 resize-none`}
-        />
 
         <button
-          type="submit"
-          className={`px-5 py-2.5 text-sm font-bold rounded-xl transition-all shadow-md ${
-            saved
-              ? 'bg-emerald-500 text-white'
-              : isDarkTheme ? 'bg-white text-gray-900 hover:bg-gray-100' : 'bg-gray-900 text-white hover:bg-gray-800'
+          onClick={() => setShowHistory(true)}
+          title="View history"
+          className={`shrink-0 p-3 rounded-xl transition-all shadow-md ${
+            isDarkTheme ? 'bg-white/10 text-white hover:bg-white/20' : isImageTheme ? 'bg-white/90 text-gray-800 hover:bg-white' : 'bg-white/70 text-gray-700 hover:bg-white'
           }`}
         >
-          {saved ? 'Saved ✓' : 'Save entry'}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+          </svg>
         </button>
-      </form>
-
-      {/* History */}
-      <h2 className={`text-lg font-bold mb-3 ${textPrimary}`} style={headingStyle}>History</h2>
-      <div className="space-y-3">
-        {logs.length === 0 && <p className={`text-sm ${textSecondary}`} style={subtleStyle}>No entries yet — log your first session above.</p>}
-        {logs.map((log) => {
-          const rank = getRank(log.hours);
-          return (
-            <div
-              key={log.date}
-              className="glass rounded-xl shadow-md p-4 border-l-4"
-              style={{ borderLeftColor: rank.color }}
-            >
-              <div className="flex items-center justify-between mb-1.5">
-                <span className={`text-sm font-bold ${textPrimary}`}>
-                  {new Date(log.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                </span>
-                <RankBadge hours={log.hours} size={20} />
-              </div>
-              <p className={`text-xs font-semibold mb-1.5 ${textSecondary}`}>{log.hours}h studied</p>
-              {log.notes && (
-                <ul className={`list-disc list-inside text-sm space-y-0.5 ${textSecondary}`}>
-                  {log.notes.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i}>{line}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          );
-        })}
       </div>
 
-      <p className={`text-[11px] mt-10 ${textSecondary} opacity-60`} style={subtleStyle}>
-        Rank names and tier structure inspired by VALORANT, a trademark of Riot Games, Inc.
-        This is a personal, non-commercial project and is not affiliated with, endorsed by, or sponsored by Riot Games.
-      </p>
+      <div className="max-w-3xl mt-6">
+        {/* Hero — today's rank */}
+        <div className="glass rounded-2xl shadow-xl p-6 mb-5 relative overflow-hidden">
+          <div
+            className="absolute inset-0 opacity-20 pointer-events-none"
+            style={{ background: `radial-gradient(circle at 15% 20%, ${todayRank.color}, transparent 60%)` }}
+          />
+          <div className="relative flex items-center justify-between flex-wrap gap-5">
+            <div className="flex items-center gap-4">
+              <div
+                className="w-20 h-20 rounded-2xl flex items-center justify-center shrink-0"
+                style={{ background: `${todayRank.color}22`, boxShadow: `0 0 30px ${todayRank.color}44` }}
+              >
+                <RankIcon rank={todayRank} size={52} />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide opacity-60">Today&apos;s rank</p>
+                <p className="text-2xl font-extrabold" style={{ color: todayRank.color }}>{todayRank.name}</p>
+                <p className="text-xs font-medium opacity-60 mt-0.5">{todayHours}h studied today</p>
+              </div>
+            </div>
+
+            {upcoming && (
+              <div className="flex-1 min-w-45">
+                <div className="flex items-center justify-between text-xs font-semibold mb-1.5 opacity-70">
+                  <span>Next: {upcoming.next.name}</span>
+                  <span>{upcoming.remaining}h to go</span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${upcoming.progress}%`, background: upcoming.next.color }}
+                  />
+                </div>
+              </div>
+            )}
+            {!upcoming && (
+              <p className="text-sm font-bold" style={{ color: todayRank.color }}>Max rank reached 🔥</p>
+            )}
+          </div>
+        </div>
+
+        {/* All-time stat tiles */}
+        <div className="glass rounded-2xl shadow-lg p-5 mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <Stat value={totalHours.toFixed(1)} label="Total hours" color="#3b82f6" />
+            <Stat value={daysLogged} label="Days logged" color="#8b5cf6" />
+            <Stat value={streak} label="Day streak" color="#f97316" />
+            <Stat value={bestRank.name} label="Best rank" color={bestRank.color} small />
+          </div>
+        </div>
+
+        {/* Log entry form */}
+        <form onSubmit={handleSave} className="glass rounded-2xl shadow-xl p-6 mb-8">
+          <h2 className={`text-sm font-bold mb-4 ${textPrimary}`}>Log a study session</h2>
+          <div className="flex flex-col sm:flex-row gap-4 mb-4">
+            <div className="flex-1">
+              <label className={`block text-xs font-semibold mb-1.5 ${textSecondary}`}>Date</label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => handleDateChange(e.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div className="flex-1">
+              <label className={`block text-xs font-semibold mb-1.5 ${textSecondary}`}>Hours studied</label>
+              <input
+                type="number"
+                step="0.25"
+                min="0"
+                value={hours}
+                onChange={(e) => setHours(e.target.value)}
+                placeholder="0"
+                className={inputClass}
+              />
+            </div>
+          </div>
+
+          {hours !== '' && (
+            <div className={`flex items-center gap-2 mb-4 px-3 py-2 rounded-xl w-fit ${isDarkTheme ? 'bg-white/5' : 'bg-black/5'}`}>
+              <RankBadge hours={hours} size={24} />
+            </div>
+          )}
+
+          <label className={`block text-xs font-semibold mb-1.5 ${textSecondary}`}>What did you study? (one point per line)</label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={4}
+            placeholder={'e.g.\nReviewed lecture 4 slides\nSolved 10 practice problems'}
+            className={`${inputClass} mb-4 resize-none`}
+          />
+
+          <button
+            type="submit"
+            className={`px-5 py-2.5 text-sm font-bold rounded-xl transition-all shadow-md ${
+              saved
+                ? 'bg-emerald-500 text-white'
+                : isDarkTheme ? 'bg-white text-gray-900 hover:bg-gray-100' : 'bg-gray-900 text-white hover:bg-gray-800'
+            }`}
+          >
+            {saved ? 'Saved ✓' : 'Save entry'}
+          </button>
+        </form>
+
+        <p className={`text-[11px] ${textSecondary} opacity-60`} style={subtleStyle}>
+          Rank names and tier structure inspired by VALORANT, a trademark of Riot Games, Inc.
+          This is a personal, non-commercial project and is not affiliated with, endorsed by, or sponsored by Riot Games.
+        </p>
+      </div>
+
+      {/* Slide-in history panel */}
+      {showHistory && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setShowHistory(false)} />
+          <div className={`fixed top-0 right-0 h-full w-full sm:w-96 z-50 overflow-y-auto p-6 shadow-2xl ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className={`text-lg font-bold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>History</h2>
+              <button
+                onClick={() => setShowHistory(false)}
+                className={`p-1.5 rounded-lg ${isDarkTheme ? 'text-gray-400 hover:bg-white/10' : 'text-gray-500 hover:bg-black/5'}`}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {logs.length === 0 && (
+                <p className={`text-sm ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>No entries yet — log your first session.</p>
+              )}
+              {logs.map((log) => (
+                <HistoryEntry
+                  key={log.date}
+                  log={log}
+                  textPrimary={isDarkTheme ? 'text-white' : 'text-gray-900'}
+                  textSecondary={isDarkTheme ? 'text-gray-400' : 'text-gray-500'}
+                />
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
