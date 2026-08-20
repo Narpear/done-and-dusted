@@ -24,7 +24,7 @@ export function useCalendarEvents(username) {
           .select('*')
           .eq('username', username)
           .order('date', { ascending: true });
-        if (!cancelled && !error) setEvents(data ?? []);
+        if (!cancelled && !error) setEvents((data ?? []).map(normalise));
       } catch {
         // table may not exist yet; stay empty
       } finally {
