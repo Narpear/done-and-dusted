@@ -496,7 +496,12 @@ export default function TodoApp() {
       {/* Main content */}
       <div className={`flex-1 min-w-0 ${activeView === 'calendar' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
         {activeView === 'stats' ? (
-          <StatsView isDarkTheme={isDarkTheme} />
+          <StatsView
+            username={username}
+            isDarkTheme={isDarkTheme}
+            isImageTheme={isImageTheme}
+            currentTheme={currentTheme}
+          />
         ) : activeView === 'calendar' ? (
           <CalendarView
             username={username}

@@ -230,8 +230,8 @@ export const THEMES = {
     accent: '#b45309',
     swatchGradient: 'url(/themes/ancient%20castle.jpg) center/cover',
     dark: false,
-    titleColor: '#fef9c3',
-    textColor: '#ffffff',
+    titleColor: '#78350f',
+    textColor: '#78350f',
   },
 };
 

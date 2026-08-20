@@ -131,6 +131,24 @@ CREATE TABLE room_presence (
 );
 
 -- ------------------------------------------------------------
+-- Study logs  (Stats page — one entry per user per day)
+-- ------------------------------------------------------------
+CREATE TABLE study_logs (
+  id         UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  username   VARCHAR(50) NOT NULL,
+  date       DATE        NOT NULL,
+  hours      NUMERIC(4,2) NOT NULL DEFAULT 0,
+  notes      TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(username, date)
+);
+
+CREATE TRIGGER study_logs_updated_at
+  BEFORE UPDATE ON study_logs
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ------------------------------------------------------------
 -- Indexes
 -- ------------------------------------------------------------
 CREATE INDEX ON rooms(code);
@@ -142,6 +160,7 @@ CREATE INDEX ON room_todos(assigned_to);
 CREATE INDEX ON room_activity(room_id, created_at DESC);
 CREATE INDEX ON room_presence(room_id);
 CREATE INDEX ON room_presence(last_ping_at);  -- fast stale-cleanup query
+CREATE INDEX ON study_logs(username, date DESC);
 
 -- ------------------------------------------------------------
 -- Row-level security
@@ -156,6 +175,7 @@ ALTER TABLE room_todos     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE room_reactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE room_activity  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE room_presence  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE study_logs     ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "open" ON users          FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "open" ON rooms          FOR ALL USING (true) WITH CHECK (true);
@@ -165,3 +185,4 @@ CREATE POLICY "open" ON room_todos     FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "open" ON room_reactions FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "open" ON room_activity  FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "open" ON room_presence  FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "open" ON study_logs     FOR ALL USING (true) WITH CHECK (true);
