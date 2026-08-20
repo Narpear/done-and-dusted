@@ -5,7 +5,6 @@ import { useStudyLog } from '../hooks/useStudyLog';
 import { getRank, RANKS, UNRANKED } from '../lib/ranks';
 
 const ASCENDING_RANKS = [...RANKS].reverse(); // iron → radiant
-const MAX_ICON_RETRIES = 2;
 
 function todayStr() {
   const d = new Date();
@@ -42,32 +41,25 @@ function computeStreak(logs) {
   return streak;
 }
 
-// Retries a couple of times on error (transient network hiccups) before giving up silently.
-function RankIconInner({ rank, size }) {
-  const [attempt, setAttempt] = useState(0);
-  const [failed, setFailed] = useState(false);
-
-  if (failed) return <div style={{ width: size, height: size }} />;
-
+// Rendered as a CSS background-image (not <img>) so a transient load hiccup can't
+// permanently blank the icon via an onError handler — it just repaints on the next frame.
+function RankIcon({ rank, size }) {
   return (
-    <img
-      key={attempt}
-      src={attempt === 0 ? rank.icon : `${rank.icon}?retry=${attempt}`}
-      alt={rank.name}
-      width={size}
-      height={size}
-      className="shrink-0"
-      onError={() => {
-        if (attempt >= MAX_ICON_RETRIES) setFailed(true);
-        else setAttempt(a => a + 1);
+    <div
+      role="img"
+      aria-label={rank.name}
+      className="shrink-0 rounded-full"
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: `${rank.color}22`,
+        backgroundImage: `url(${rank.icon})`,
+        backgroundSize: 'contain',
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'center',
       }}
     />
   );
-}
-
-// Keyed on the icon path so a rank change (e.g. hero updating live) starts retries fresh.
-function RankIcon({ rank, size }) {
-  return <RankIconInner key={rank.icon} rank={rank} size={size} />;
 }
 
 function RankBadge({ hours, size = 40 }) {
