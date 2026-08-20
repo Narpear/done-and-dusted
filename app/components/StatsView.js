@@ -158,6 +158,11 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
           </div>
         ))}
       </div>
+
+      <p className={`text-[11px] mt-10 ${textSecondary} opacity-60`}>
+        Rank names and tier structure inspired by VALORANT, a trademark of Riot Games, Inc.
+        This is a personal, non-commercial project and is not affiliated with, endorsed by, or sponsored by Riot Games.
+      </p>
     </div>
   );
 }
