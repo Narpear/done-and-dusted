@@ -72,7 +72,7 @@ function RankBadge({ hours, size = 40 }) {
   );
 }
 
-function HistoryEntry({ log, textPrimary, textSecondary }) {
+function HistoryEntry({ log, textPrimary, textSecondary, onEdit }) {
   const rank = getRank(log.hours);
   return (
     <div className="glass rounded-xl shadow-md p-4 border-l-4" style={{ borderLeftColor: rank.color }}>
@@ -80,7 +80,15 @@ function HistoryEntry({ log, textPrimary, textSecondary }) {
         <span className={`text-sm font-bold ${textPrimary}`}>
           {new Date(log.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
         </span>
-        <RankBadge hours={log.hours} size={20} />
+        <div className="flex items-center gap-3">
+          <RankBadge hours={log.hours} size={20} />
+          <button
+            onClick={() => onEdit(log.date)}
+            className={`text-xs font-semibold underline decoration-dotted ${textSecondary}`}
+          >
+            Edit
+          </button>
+        </div>
       </div>
       <p className={`text-xs font-semibold mb-1.5 ${textSecondary}`}>{log.hours}h studied</p>
       {log.notes && (
@@ -99,6 +107,7 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
   const [notes, setNotes] = useState('');
   const [saved, setSaved] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const formRef = useRef(null);
 
   const subtleStyle    = isImageTheme ? { color: currentTheme?.textColor } : undefined;
   const textPrimary    = isImageTheme ? '' : isDarkTheme ? 'text-white' : 'text-gray-900';
@@ -119,6 +128,13 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
   function handleDateChange(newDate) {
     setDate(newDate);
     loadEntryFor(newDate, logs);
+  }
+
+  function handleEditEntry(entryDate) {
+    setDate(entryDate);
+    loadEntryFor(entryDate, logs);
+    setShowHistory(false);
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   // Sync the form once the initial logs fetch resolves, in case today already has an entry.
@@ -227,7 +243,7 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
         </div>
 
         {/* Log entry form */}
-        <form onSubmit={handleSave} className="glass rounded-2xl shadow-xl p-6 mb-8">
+        <form ref={formRef} onSubmit={handleSave} className="glass rounded-2xl shadow-xl p-6 mb-8">
           <h2 className={`text-sm font-bold mb-4 ${textPrimary}`}>Log a study session</h2>
           <div className="flex flex-col sm:flex-row gap-4 mb-4">
             <div className="flex-1">
@@ -313,6 +329,7 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
                   log={log}
                   textPrimary={isDarkTheme ? 'text-white' : 'text-gray-900'}
                   textSecondary={isDarkTheme ? 'text-gray-400' : 'text-gray-500'}
+                  onEdit={handleEditEntry}
                 />
               ))}
             </div>
