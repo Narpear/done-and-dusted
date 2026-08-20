@@ -32,8 +32,10 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
   const [notes, setNotes] = useState('');
   const [saved, setSaved] = useState(false);
 
-  const textPrimary   = isDarkTheme ? 'text-white' : 'text-gray-900';
-  const textSecondary = isDarkTheme ? 'text-gray-300' : 'text-gray-700';
+  const textPrimary   = isImageTheme ? '' : isDarkTheme ? 'text-white' : 'text-gray-900';
+  const textSecondary = isImageTheme ? '' : isDarkTheme ? 'text-gray-300' : 'text-gray-700';
+  const primaryStyle   = isImageTheme ? { color: currentTheme?.textColor } : undefined;
+  const secondaryStyle = isImageTheme ? { color: currentTheme?.textColor } : undefined;
   const cardBg = isDarkTheme ? 'bg-white/5 border-white/10' : 'bg-white/60 border-black/10';
 
   function loadEntryFor(newDate, fromLogs) {
@@ -72,11 +74,11 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
           Stats
         </span>
       </h1>
-      <p className={`text-sm mb-6 ${textSecondary}`}>Log your study hours and climb the ranks.</p>
+      <p className={`text-sm mb-6 ${textSecondary}`} style={secondaryStyle}>Log your study hours and climb the ranks.</p>
 
       {/* Today's rank */}
       <div className={`rounded-2xl border p-5 mb-6 ${cardBg}`}>
-        <p className={`text-xs font-semibold uppercase tracking-wide mb-2 ${textSecondary}`}>Today&apos;s rank</p>
+        <p className={`text-xs font-semibold uppercase tracking-wide mb-2 ${textSecondary}`} style={secondaryStyle}>Today&apos;s rank</p>
         <RankBadge hours={todayEntry?.hours || 0} size={48} />
       </div>
 
@@ -84,7 +86,7 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
       <form onSubmit={handleSave} className={`rounded-2xl border p-5 mb-8 ${cardBg}`}>
         <div className="flex flex-col sm:flex-row gap-4 mb-4">
           <div className="flex-1">
-            <label className={`block text-xs font-semibold mb-1 ${textSecondary}`}>Date</label>
+            <label className={`block text-xs font-semibold mb-1 ${textSecondary}`} style={secondaryStyle}>Date</label>
             <input
               type="date"
               value={date}
@@ -95,7 +97,7 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
             />
           </div>
           <div className="flex-1">
-            <label className={`block text-xs font-semibold mb-1 ${textSecondary}`}>Hours studied</label>
+            <label className={`block text-xs font-semibold mb-1 ${textSecondary}`} style={secondaryStyle}>Hours studied</label>
             <input
               type="number"
               step="0.25"
@@ -116,7 +118,7 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
           </div>
         )}
 
-        <label className={`block text-xs font-semibold mb-1 ${textSecondary}`}>What did you study? (one point per line)</label>
+        <label className={`block text-xs font-semibold mb-1 ${textSecondary}`} style={secondaryStyle}>What did you study? (one point per line)</label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
@@ -138,18 +140,18 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
       </form>
 
       {/* History */}
-      <h2 className={`text-lg font-bold mb-3 ${textPrimary}`}>History</h2>
+      <h2 className={`text-lg font-bold mb-3 ${textPrimary}`} style={primaryStyle}>History</h2>
       <div className="space-y-3">
-        {logs.length === 0 && <p className={`text-sm ${textSecondary}`}>No entries yet.</p>}
+        {logs.length === 0 && <p className={`text-sm ${textSecondary}`} style={secondaryStyle}>No entries yet.</p>}
         {logs.map((log) => (
           <div key={log.date} className={`rounded-xl border p-4 ${cardBg}`}>
             <div className="flex items-center justify-between mb-2">
-              <span className={`text-sm font-semibold ${textPrimary}`}>{log.date}</span>
+              <span className={`text-sm font-semibold ${textPrimary}`} style={primaryStyle}>{log.date}</span>
               <RankBadge hours={log.hours} size={20} />
             </div>
-            <p className={`text-xs mb-1 ${textSecondary}`}>{log.hours}h studied</p>
+            <p className={`text-xs mb-1 ${textSecondary}`} style={secondaryStyle}>{log.hours}h studied</p>
             {log.notes && (
-              <ul className={`list-disc list-inside text-sm ${textSecondary}`}>
+              <ul className={`list-disc list-inside text-sm ${textSecondary}`} style={secondaryStyle}>
                 {log.notes.split('\n').filter(Boolean).map((line, i) => (
                   <li key={i}>{line}</li>
                 ))}
@@ -159,7 +161,7 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
         ))}
       </div>
 
-      <p className={`text-[11px] mt-10 ${textSecondary} opacity-60`}>
+      <p className={`text-[11px] mt-10 ${textSecondary} opacity-60`} style={secondaryStyle}>
         Rank names and tier structure inspired by VALORANT, a trademark of Riot Games, Inc.
         This is a personal, non-commercial project and is not affiliated with, endorsed by, or sponsored by Riot Games.
       </p>
