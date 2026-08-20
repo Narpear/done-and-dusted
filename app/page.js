@@ -18,6 +18,7 @@ import { usePresence } from './hooks/usePresence';
 import { useActivity } from './hooks/useActivity';
 
 import Sidebar from './components/Sidebar';
+import StatsView from './components/StatsView';
 import AddTodoForm from './components/AddTodoForm';
 import StatsBar from './components/StatsBar';
 import TodoItem from './components/TodoItem';
@@ -486,6 +487,7 @@ export default function TodoApp() {
             username={username}
             activeView={activeView}
             onSelectCalendar={() => { setActiveView('calendar'); handleExitRoom(); }}
+            onSelectStats={() => { setActiveView('stats'); handleExitRoom(); }}
             onOpenSettings={() => setIsSettingsOpen((o) => !o)}
           />
         </div>
@@ -493,7 +495,9 @@ export default function TodoApp() {
 
       {/* Main content */}
       <div className={`flex-1 min-w-0 ${activeView === 'calendar' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-        {activeView === 'calendar' ? (
+        {activeView === 'stats' ? (
+          <StatsView isDarkTheme={isDarkTheme} />
+        ) : activeView === 'calendar' ? (
           <CalendarView
             username={username}
             isDarkTheme={isDarkTheme}

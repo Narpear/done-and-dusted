@@ -28,9 +28,11 @@ export default function Sidebar({
   // view
   activeView,
   onSelectCalendar,
+  onSelectStats,
   // settings
   onOpenSettings,
 }) {
+  const canSeeStats = username === 'Narpear' || username === 'P4van17';
   const [isAddingList, setIsAddingList] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [editingId, setEditingId] = useState(null);
@@ -245,6 +247,19 @@ export default function Sidebar({
         </svg>
         Calendar
       </button>
+      {canSeeStats && (
+        <button
+          onClick={onSelectStats}
+          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            activeView === 'stats' ? activeBg : hoverBg
+          }`}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-4"/>
+          </svg>
+          Stats
+        </button>
+      )}
       <button
         onClick={onOpenSettings}
         className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
