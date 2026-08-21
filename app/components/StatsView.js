@@ -41,6 +41,23 @@ function computeStreak(logs) {
   return streak;
 }
 
+function summarize(logs) {
+  const todayEntry = logs.find(l => l.date === todayStr());
+  const todayHours = todayEntry?.hours || 0;
+  const totalHours = logs.reduce((sum, l) => sum + (Number(l.hours) || 0), 0);
+  const daysLogged = logs.length;
+  const bestHours = logs.reduce((max, l) => Math.max(max, Number(l.hours) || 0), 0);
+  return {
+    todayHours,
+    todayRank: getRank(todayHours),
+    upcoming: nextRankInfo(todayHours),
+    totalHours,
+    daysLogged,
+    streak: computeStreak(logs),
+    bestRank: daysLogged > 0 ? getRank(bestHours) : UNRANKED,
+  };
+}
+
 // Rendered as a CSS background-image (not <img>) so a transient load hiccup can't
 // permanently blank the icon via an onError handler — it just repaints on the next frame.
 function RankIcon({ rank, size }) {
@@ -82,12 +99,14 @@ function HistoryEntry({ log, textPrimary, textSecondary, onEdit }) {
         </span>
         <div className="flex items-center gap-3">
           <RankBadge hours={log.hours} size={20} />
-          <button
-            onClick={() => onEdit(log.date)}
-            className={`text-xs font-semibold underline decoration-dotted ${textSecondary}`}
-          >
-            Edit
-          </button>
+          {onEdit && (
+            <button
+              onClick={() => onEdit(log.date)}
+              className={`text-xs font-semibold underline decoration-dotted ${textSecondary}`}
+            >
+              Edit
+            </button>
+          )}
         </div>
       </div>
       <p className={`text-xs font-semibold mb-1.5 ${textSecondary}`}>{log.hours}h studied</p>
@@ -100,6 +119,83 @@ function HistoryEntry({ log, textPrimary, textSecondary, onEdit }) {
   );
 }
 
+// Shared right-side slide-in drawer used by both the History and Peek panels.
+function SlidePanel({ title, icon, onClose, isDarkTheme, children }) {
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
+      <div className={`fixed top-0 right-0 h-full w-full sm:w-96 z-50 overflow-y-auto p-6 shadow-2xl ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
+        <div className="flex items-center justify-between mb-5">
+          <div className={`flex items-center gap-2 text-lg font-bold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>
+            {icon}
+            {title}
+          </div>
+          <button
+            onClick={onClose}
+            className={`p-1.5 rounded-lg ${isDarkTheme ? 'text-gray-400 hover:bg-white/10' : 'text-gray-500 hover:bg-black/5'}`}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        {children}
+      </div>
+    </>
+  );
+}
+
+// The other person's rank hero, shown at the top of the Peek panel.
+function PeepHero({ username, summary, isDarkTheme }) {
+  const { todayRank, todayHours, upcoming } = summary;
+  return (
+    <div className={`rounded-xl p-4 mb-5 relative overflow-hidden ${isDarkTheme ? 'bg-white/5' : 'bg-black/5'}`}>
+      <div
+        className="absolute inset-0 opacity-25 pointer-events-none"
+        style={{ background: `radial-gradient(circle at 10% 10%, ${todayRank.color}, transparent 65%)` }}
+      />
+      <div className="relative flex items-center gap-3 mb-3">
+        <div
+          className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: `${todayRank.color}22`, boxShadow: `0 0 20px ${todayRank.color}44` }}
+        >
+          <RankIcon rank={todayRank} size={36} />
+        </div>
+        <div>
+          <p className={`text-xs font-semibold uppercase tracking-wide ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>{username}&apos;s rank today</p>
+          <p className="text-lg font-extrabold" style={{ color: todayRank.color }}>{todayRank.name}</p>
+        </div>
+      </div>
+      <p className={`relative text-xs font-medium mb-2 ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
+        {todayHours > 0 ? `${todayHours}h studied today` : 'Nothing logged yet today'}
+      </p>
+      {upcoming && (
+        <div className="relative">
+          <div className={`flex items-center justify-between text-[11px] font-semibold mb-1 ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
+            <span>Next: {upcoming.next.name}</span>
+            <span>{upcoming.remaining}h to go</span>
+          </div>
+          <div className="w-full h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+            <div className="h-full rounded-full" style={{ width: `${upcoming.progress}%`, background: upcoming.next.color }} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const EyeIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const ClockIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+  </svg>
+);
+
 export default function StatsView({ username, isDarkTheme, isImageTheme, currentTheme }) {
   const { logs, saveLog } = useStudyLog(username);
   const [date, setDate] = useState(todayStr());
@@ -107,7 +203,11 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
   const [notes, setNotes] = useState('');
   const [saved, setSaved] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showPeep, setShowPeep] = useState(false);
   const formRef = useRef(null);
+
+  const otherUsername = username === 'Narpear' ? 'P4van17' : 'Narpear';
+  const { logs: peepLogs } = useStudyLog(showPeep ? otherUsername : null);
 
   const subtleStyle    = isImageTheme ? { color: currentTheme?.textColor } : undefined;
   const textPrimary    = isImageTheme ? '' : isDarkTheme ? 'text-white' : 'text-gray-900';
@@ -152,16 +252,8 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
     setSaved(true);
   }
 
-  const todayEntry = logs.find(l => l.date === todayStr());
-  const todayHours = todayEntry?.hours || 0;
-  const upcoming = nextRankInfo(todayHours);
-  const todayRank = getRank(todayHours);
-
-  const totalHours = logs.reduce((sum, l) => sum + (Number(l.hours) || 0), 0);
-  const daysLogged = logs.length;
-  const streak = computeStreak(logs);
-  const bestHours = logs.reduce((max, l) => Math.max(max, Number(l.hours) || 0), 0);
-  const bestRank = daysLogged > 0 ? getRank(bestHours) : UNRANKED;
+  const { todayHours, todayRank, upcoming, totalHours, daysLogged, streak, bestRank } = summarize(logs);
+  const peepSummary = showPeep ? summarize(peepLogs) : null;
 
   return (
     <div className="px-4 sm:px-10 md:px-20 lg:px-30 py-6 md:py-10">
@@ -177,17 +269,26 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
           </p>
         </div>
 
-        <button
-          onClick={() => setShowHistory(true)}
-          title="View history"
-          className={`shrink-0 p-3 rounded-xl transition-all shadow-md ${
-            isDarkTheme ? 'bg-white/10 text-white hover:bg-white/20' : isImageTheme ? 'bg-white/90 text-gray-800 hover:bg-white' : 'bg-white/70 text-gray-700 hover:bg-white'
-          }`}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setShowPeep(true)}
+            title={`Peep into ${otherUsername}'s work`}
+            className={`p-3 rounded-xl transition-all shadow-md ${
+              isDarkTheme ? 'bg-white/10 text-white hover:bg-white/20' : isImageTheme ? 'bg-white/90 text-gray-800 hover:bg-white' : 'bg-white/70 text-gray-700 hover:bg-white'
+            }`}
+          >
+            <EyeIcon />
+          </button>
+          <button
+            onClick={() => setShowHistory(true)}
+            title="View history"
+            className={`p-3 rounded-xl transition-all shadow-md ${
+              isDarkTheme ? 'bg-white/10 text-white hover:bg-white/20' : isImageTheme ? 'bg-white/90 text-gray-800 hover:bg-white' : 'bg-white/70 text-gray-700 hover:bg-white'
+            }`}
+          >
+            <ClockIcon />
+          </button>
+        </div>
       </div>
 
       <div className="max-w-3xl mt-6">
@@ -246,7 +347,7 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
 
         {/* Log entry form */}
         <form ref={formRef} onSubmit={handleSave} className="glass rounded-2xl shadow-xl p-6 mb-8">
-          <h2 className={`text-sm font-bold mb-4 ${textPrimary}`}>Log a study session</h2>
+          <h2 className={`text-sm font-bold mb-4 ${textPrimary}`}>Log today&apos;s work</h2>
           <div className="flex flex-col sm:flex-row gap-4 mb-4">
             <div className="flex-1">
               <label className={`block text-xs font-semibold mb-1.5 ${textSecondary}`}>Date</label>
@@ -306,37 +407,42 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
 
       {/* Slide-in history panel */}
       {showHistory && (
-        <>
-          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setShowHistory(false)} />
-          <div className={`fixed top-0 right-0 h-full w-full sm:w-96 z-50 overflow-y-auto p-6 shadow-2xl ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
-            <div className="flex items-center justify-between mb-5">
-              <h2 className={`text-lg font-bold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>History</h2>
-              <button
-                onClick={() => setShowHistory(false)}
-                className={`p-1.5 rounded-lg ${isDarkTheme ? 'text-gray-400 hover:bg-white/10' : 'text-gray-500 hover:bg-black/5'}`}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {logs.length === 0 && (
-                <p className={`text-sm ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>No entries yet — log your first session.</p>
-              )}
-              {logs.map((log) => (
-                <HistoryEntry
-                  key={log.date}
-                  log={log}
-                  textPrimary={isDarkTheme ? 'text-white' : 'text-gray-900'}
-                  textSecondary={isDarkTheme ? 'text-gray-400' : 'text-gray-500'}
-                  onEdit={handleEditEntry}
-                />
-              ))}
-            </div>
+        <SlidePanel title="History" icon={<ClockIcon size={18} />} onClose={() => setShowHistory(false)} isDarkTheme={isDarkTheme}>
+          <div className="space-y-3">
+            {logs.length === 0 && (
+              <p className={`text-sm ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>No entries yet — log your first session.</p>
+            )}
+            {logs.map((log) => (
+              <HistoryEntry
+                key={log.date}
+                log={log}
+                textPrimary={isDarkTheme ? 'text-white' : 'text-gray-900'}
+                textSecondary={isDarkTheme ? 'text-gray-400' : 'text-gray-500'}
+                onEdit={handleEditEntry}
+              />
+            ))}
           </div>
-        </>
+        </SlidePanel>
+      )}
+
+      {/* Slide-in peek panel — read-only view into the other person's work */}
+      {showPeep && (
+        <SlidePanel title={`Peep into ${otherUsername}`} icon={<EyeIcon size={18} />} onClose={() => setShowPeep(false)} isDarkTheme={isDarkTheme}>
+          {peepSummary && <PeepHero username={otherUsername} summary={peepSummary} isDarkTheme={isDarkTheme} />}
+          <div className="space-y-3">
+            {peepLogs.length === 0 && (
+              <p className={`text-sm ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>{otherUsername} hasn&apos;t logged anything yet.</p>
+            )}
+            {peepLogs.map((log) => (
+              <HistoryEntry
+                key={log.date}
+                log={log}
+                textPrimary={isDarkTheme ? 'text-white' : 'text-gray-900'}
+                textSecondary={isDarkTheme ? 'text-gray-400' : 'text-gray-500'}
+              />
+            ))}
+          </div>
+        </SlidePanel>
       )}
     </div>
   );

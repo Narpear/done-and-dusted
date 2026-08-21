@@ -233,6 +233,16 @@ export const THEMES = {
     titleColor: '#78350f',
     textColor: '#78350f',
   },
+  uchiha: {
+    name: 'Uchiha',
+    bg: '',
+    bgImage: '/themes/uchiha.jpeg',
+    accent: '#b91c1c',
+    swatchGradient: 'url(/themes/uchiha.jpeg) center/cover',
+    dark: false,
+    titleColor: '#ffffff',
+    textColor: '#ffffff',
+  },
 };
 
 export const FONTS = {
