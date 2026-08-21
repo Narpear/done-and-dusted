@@ -291,7 +291,7 @@ export default function StatsView({ username, isDarkTheme, isImageTheme, current
         </div>
       </div>
 
-      <div className="max-w-3xl mt-6">
+      <div className="mt-6">
         {/* Hero — today's rank */}
         <div className="glass rounded-2xl shadow-xl p-6 mb-5 relative overflow-hidden">
           <div
