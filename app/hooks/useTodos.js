@@ -68,6 +68,11 @@ export function useTodos() {
   const undoTimerRef  = useRef(null);
   const syncTimerRef  = useRef(null);
   const ignoreSyncRef = useRef(false); // suppress echo from our own upsert
+  // Guards the upload effect until the initial remote fetch has settled, so a
+  // fresh device doesn't push its empty local defaults and clobber real
+  // cross-device data before it's even had a chance to load. Starts true
+  // (nothing to wait for) and flips false while a logged-in fetch is in flight.
+  const [remoteLoaded, setRemoteLoaded] = useState(true);
 
   // ── Load from localStorage ───────────────────────────────────────────────
   useEffect(() => {
@@ -130,29 +135,35 @@ export function useTodos() {
     const username = stored?.username;
     if (!username) return;
 
+    setRemoteLoaded(false); // block the upload effect until this fetch settles
+
     let channel;
     let cancelled = false;
 
     (async () => {
       const sb = await getSupabase();
 
-      // Load from Supabase — overrides localStorage so other devices' changes win
-      const { data } = await sb
-        .from('personal_todos')
-        .select('lists, current_list_id, theme, font, mode, layout, sort_by')
-        .eq('username', username)
-        .maybeSingle();
+      try {
+        // Load from Supabase — overrides localStorage so other devices' changes win
+        const { data } = await sb
+          .from('personal_todos')
+          .select('lists, current_list_id, theme, font, mode, layout, sort_by')
+          .eq('username', username)
+          .maybeSingle();
 
-      if (!cancelled && data) {
-        ignoreSyncRef.current = true;
-        if (data.lists) setLists(data.lists);
-        if (data.current_list_id) setCurrentListId(data.current_list_id);
-        if (data.theme)   setTheme(data.theme);
-        if (data.font)    setFont(data.font);
-        if (data.mode)    setMode(data.mode);
-        if (data.layout)  setLayout(data.layout);
-        if (data.sort_by) setSortBy(data.sort_by);
-        ignoreSyncRef.current = false;
+        if (!cancelled && data) {
+          ignoreSyncRef.current = true;
+          if (data.lists) setLists(data.lists);
+          if (data.current_list_id) setCurrentListId(data.current_list_id);
+          if (data.theme)   setTheme(data.theme);
+          if (data.font)    setFont(data.font);
+          if (data.mode)    setMode(data.mode);
+          if (data.layout)  setLayout(data.layout);
+          if (data.sort_by) setSortBy(data.sort_by);
+          ignoreSyncRef.current = false;
+        }
+      } finally {
+        if (!cancelled) setRemoteLoaded(true);
       }
 
       // Realtime: receive changes from other devices
@@ -186,6 +197,10 @@ export function useTodos() {
     const stored = JSON.parse(localStorage.getItem('dd_user') || 'null');
     const username = stored?.username;
     if (!username) return;
+    // Don't push anything until the initial remote fetch has settled — otherwise
+    // a fresh device can upload its empty local defaults before it even knows
+    // what's already synced, wiping out real cross-device data.
+    if (!remoteLoaded) return;
 
     if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
     syncTimerRef.current = setTimeout(async () => {
@@ -208,7 +223,7 @@ export function useTodos() {
     }, 800);
 
     return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
-  }, [lists, currentListId, theme, font, mode, layout, sortBy]);
+  }, [lists, currentListId, theme, font, mode, layout, sortBy, remoteLoaded]);
 
   // Cleanup timers on unmount
   useEffect(() => () => {
