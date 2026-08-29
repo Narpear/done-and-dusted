@@ -6,7 +6,7 @@ import { useGSAP } from '@gsap/react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, verticalListSortingStrategy } from '@dnd-kit/sortable';
 
-import { THEMES, FONTS, KEYBOARD_SHORTCUTS } from './lib/constants';
+import { THEMES, FONTS, KEYBOARD_SHORTCUTS, DEFAULT_LIST_ID } from './lib/constants';
 import { formatDate } from './lib/utils';
 import { useTodos } from './hooks/useTodos';
 import { useCalendarEvents } from './hooks/useCalendarEvents';
@@ -239,8 +239,10 @@ export default function TodoApp() {
 
   const filteredTodos = effectiveTodos.filter((t) => selectedTag === 'all' || t.tag === selectedTag);
 
-  // Calendar deadline items injected as virtual todos (next 7 days, personal mode only)
-  const calendarTodoItems = !inRoomMode ? upcomingDeadlines
+  // Calendar deadline items injected as virtual todos (next 7 days). Personal
+  // mode only, and only in the default "My Tasks" list — other lists stay clean.
+  const showCalendarDeadlines = !inRoomMode && currentListId === DEFAULT_LIST_ID;
+  const calendarTodoItems = showCalendarDeadlines ? upcomingDeadlines
     .filter(ev => !dismissedCalendarIds.has(ev.id))
     .map(ev => ({
       id: ev.id,

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { arrayMove } from '@dnd-kit/sortable';
 import { generateId, calcProgress, getNextRecurrenceDate } from '../lib/utils';
+import { DEFAULT_LIST_ID, DEFAULT_LIST_NAME } from '../lib/constants';
 
 async function getSupabase() {
   const { supabase } = await import('../lib/supabase');
@@ -18,6 +19,19 @@ const STORAGE_KEYS = {
   layout: 'doneAndDustedLayout',
   sortBy: 'doneAndDustedSortBy',
 };
+
+// Every user always has exactly one default list: id `default`, always named
+// "My Tasks", always first. Older saved data may have renamed or deleted it, so
+// normalise on every path that puts lists into state (localStorage, the remote
+// fetch, realtime pushes from other devices).
+function ensureDefaultList(lists) {
+  const safe = Array.isArray(lists) && lists.length ? lists : [];
+  const existing = safe.find((l) => l.id === DEFAULT_LIST_ID);
+  const defaultList = existing
+    ? { ...existing, name: DEFAULT_LIST_NAME, todos: existing.todos ?? [] }
+    : { id: DEFAULT_LIST_ID, name: DEFAULT_LIST_NAME, todos: [] };
+  return [defaultList, ...safe.filter((l) => l.id !== DEFAULT_LIST_ID)];
+}
 
 function checkParentCompletion(todos) {
   return todos.map((todo) => {
@@ -57,8 +71,8 @@ function markAllSubtasksComplete(subtasks, val) {
 }
 
 export function useTodos() {
-  const [lists, setLists] = useState([{ id: 'default', name: 'My Tasks', todos: [] }]);
-  const [currentListId, setCurrentListId] = useState('default');
+  const [lists, setLists] = useState([{ id: DEFAULT_LIST_ID, name: DEFAULT_LIST_NAME, todos: [] }]);
+  const [currentListId, setCurrentListId] = useState(DEFAULT_LIST_ID);
   const [theme, setTheme] = useState('rose-gold');
   const [font, setFont] = useState('inter');
   const [mode, setMode] = useState('basic');
@@ -100,12 +114,12 @@ export function useTodos() {
       const parsed = JSON.parse(savedLists);
       const migrated = parsed.map((list) => ({
         ...list,
-        todos: list.todos.map((todo) => ({
+        todos: (list.todos ?? []).map((todo) => ({
           ...todo,
           subtasks: migrateSubtasks(todo.subtasks),
         })),
       }));
-      setLists(migrated);
+      setLists(ensureDefaultList(migrated));
     }
     if (savedId) setCurrentListId(savedId);
     if (savedFont) setFont(savedFont);
@@ -153,7 +167,7 @@ export function useTodos() {
 
         if (!cancelled && data) {
           ignoreSyncRef.current = true;
-          if (data.lists) setLists(data.lists);
+          if (data.lists) setLists(ensureDefaultList(data.lists));
           if (data.current_list_id) setCurrentListId(data.current_list_id);
           if (data.theme)   setTheme(data.theme);
           if (data.font)    setFont(data.font);
@@ -175,7 +189,7 @@ export function useTodos() {
         }, (payload) => {
           if (ignoreSyncRef.current) return;
           const row = payload.new;
-          if (row?.lists)            setLists(row.lists);
+          if (row?.lists)            setLists(ensureDefaultList(row.lists));
           if (row?.current_list_id)  setCurrentListId(row.current_list_id);
           if (row?.theme)            setTheme(row.theme);
           if (row?.font)             setFont(row.font);
@@ -230,6 +244,12 @@ export function useTodos() {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
   }, []);
+
+  // If the selected list vanished (deleted on another device, stale saved id),
+  // fall back to the default list rather than leaving a dangling selection.
+  useEffect(() => {
+    if (!lists.some((l) => l.id === currentListId)) setCurrentListId(DEFAULT_LIST_ID);
+  }, [lists, currentListId]);
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const currentList = lists.find((l) => l.id === currentListId) || lists[0];
@@ -442,6 +462,7 @@ export function useTodos() {
   }
 
   function deleteList(listId) {
+    if (listId === DEFAULT_LIST_ID) return; // the default list is permanent
     if (lists.length === 1) return;
     setLists((prev) => {
       const filtered = prev.filter((l) => l.id !== listId);
@@ -451,6 +472,7 @@ export function useTodos() {
   }
 
   function editList(listId, newName) {
+    if (listId === DEFAULT_LIST_ID) return; // the default list can't be renamed
     setLists((prev) =>
       prev.map((l) => (l.id === listId ? { ...l, name: newName } : l))
     );

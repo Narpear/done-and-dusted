@@ -15,9 +15,13 @@ function hashColor(str) {
   for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) & 0xffffffff;
   return PALETTE[Math.abs(h) % PALETTE.length];
 }
-function eventColor(ev, categoryColors = {}) {
+// An event's colour comes from its first tag (an explicit per-event colour
+// still wins). Events with no tags fall back to neutral grey.
+function primaryTag(ev) { return (ev.tags || []).filter(Boolean)[0] || ''; }
+function eventColor(ev, tagColors = {}) {
   if (ev.color) return ev.color;
-  if (ev.type) return categoryColors[ev.type] || hashColor(ev.type);
+  const tag = primaryTag(ev);
+  if (tag) return tagColors[tag] || hashColor(tag);
   return '#6b7280';
 }
 
@@ -75,8 +79,8 @@ function FilterDropdown({ label, icon, count, isDarkTheme, children }) {
   );
 }
 
-// ── Category dropdown (with editable color per category) ───────────────────
-function CategoryDropdown({ allCategories, filterTypes, onToggle, onClearAll, getCategoryColor, saveCategoryColor, isDarkTheme, muted }) {
+// ── Category dropdown (filter only, no colors) ─────────────────────────────
+function CategoryDropdown({ allCategories, filterTypes, onToggle, onClearAll, isDarkTheme, muted }) {
   const [search, setSearch] = useState('');
   const visible = allCategories.filter(c => c.toLowerCase().includes(search.toLowerCase()));
 
@@ -111,30 +115,26 @@ function CategoryDropdown({ allCategories, filterTypes, onToggle, onClearAll, ge
             {visible.length === 0
               ? <p className={`text-sm px-3 py-2 ${muted}`}>No categories found</p>
               : visible.map(cat => {
-                  const tc      = getCategoryColor(cat);
                   const checked = filterTypes.includes(cat);
                   return (
-                    <div key={cat} className={`flex items-center gap-2 px-2 py-1.5 mx-1 rounded-lg transition-colors ${
-                      isDarkTheme ? 'hover:bg-white/10' : 'hover:bg-black/5'
-                    }`} style={{ width: 'calc(100% - 8px)' }}>
-                      <button onClick={() => onToggle(cat)} className="flex-1 flex items-center gap-2 text-left min-w-0">
-                        <span
-                          className="w-3.5 h-3.5 rounded shrink-0 border-2 flex items-center justify-center transition-colors"
-                          style={{ borderColor: tc, backgroundColor: checked ? tc : 'transparent' }}
-                        >
-                          {checked && <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><path d="M5 13l4 4L19 7"/></svg>}
-                        </span>
-                        <span className="text-sm font-medium truncate" style={{ color: tc }}>{cat}</span>
-                      </button>
-                      <label className="relative cursor-pointer shrink-0" title={`Change color for ${cat}`}>
-                        <span
-                          className="w-3.5 h-3.5 rounded-full block ring-1 ring-black/10 hover:scale-110 transition-transform"
-                          style={{ backgroundColor: tc }}
-                        />
-                        <input type="color" value={tc} className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                          onChange={e => saveCategoryColor(cat, e.target.value)} />
-                      </label>
-                    </div>
+                    <button
+                      key={cat}
+                      onClick={() => onToggle(cat)}
+                      className={`w-full flex items-center gap-2 px-2 py-1.5 mx-1 rounded-lg text-left transition-colors ${
+                        isDarkTheme ? 'hover:bg-white/10' : 'hover:bg-black/5'
+                      }`}
+                      style={{ width: 'calc(100% - 8px)' }}
+                    >
+                      <span
+                        className={`w-3.5 h-3.5 rounded shrink-0 border-2 flex items-center justify-center transition-colors ${
+                          isDarkTheme ? 'border-gray-500' : 'border-gray-300'
+                        }`}
+                        style={{ backgroundColor: checked ? (isDarkTheme ? '#9ca3af' : '#6b7280') : 'transparent' }}
+                      >
+                        {checked && <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><path d="M5 13l4 4L19 7"/></svg>}
+                      </span>
+                      <span className={`text-sm font-medium truncate ${muted}`}>{cat}</span>
+                    </button>
                   );
                 })
             }
@@ -153,8 +153,8 @@ function CategoryDropdown({ allCategories, filterTypes, onToggle, onClearAll, ge
   );
 }
 
-// ── Tags dropdown (filter only, no colors) ─────────────────────────────────
-function TagsDropdown({ allTags, filterTags, onToggle, onClearAll, isDarkTheme, muted }) {
+// ── Tags dropdown (with editable color per tag) ────────────────────────────
+function TagsDropdown({ allTags, filterTags, onToggle, onClearAll, getTagColor, saveTagColor, isDarkTheme, muted }) {
   const [search, setSearch] = useState('');
   const visible = allTags.filter(t => t.toLowerCase().includes(search.toLowerCase()));
 
@@ -189,26 +189,30 @@ function TagsDropdown({ allTags, filterTags, onToggle, onClearAll, isDarkTheme, 
             {visible.length === 0
               ? <p className={`text-sm px-3 py-2 ${muted}`}>No tags found</p>
               : visible.map(tag => {
+                  const tc      = getTagColor(tag);
                   const checked = filterTags.includes(tag);
                   return (
-                    <button
-                      key={tag}
-                      onClick={() => onToggle(tag)}
-                      className={`w-full flex items-center gap-2 px-2 py-1.5 mx-1 rounded-lg text-left transition-colors ${
-                        isDarkTheme ? 'hover:bg-white/10' : 'hover:bg-black/5'
-                      }`}
-                      style={{ width: 'calc(100% - 8px)' }}
-                    >
-                      <span
-                        className={`w-3.5 h-3.5 rounded shrink-0 border-2 flex items-center justify-center transition-colors ${
-                          isDarkTheme ? 'border-gray-500' : 'border-gray-300'
-                        }`}
-                        style={{ backgroundColor: checked ? (isDarkTheme ? '#9ca3af' : '#6b7280') : 'transparent' }}
-                      >
-                        {checked && <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><path d="M5 13l4 4L19 7"/></svg>}
-                      </span>
-                      <span className={`text-sm font-medium truncate ${muted}`}>#{tag}</span>
-                    </button>
+                    <div key={tag} className={`flex items-center gap-2 px-2 py-1.5 mx-1 rounded-lg transition-colors ${
+                      isDarkTheme ? 'hover:bg-white/10' : 'hover:bg-black/5'
+                    }`} style={{ width: 'calc(100% - 8px)' }}>
+                      <button onClick={() => onToggle(tag)} className="flex-1 flex items-center gap-2 text-left min-w-0">
+                        <span
+                          className="w-3.5 h-3.5 rounded shrink-0 border-2 flex items-center justify-center transition-colors"
+                          style={{ borderColor: tc, backgroundColor: checked ? tc : 'transparent' }}
+                        >
+                          {checked && <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><path d="M5 13l4 4L19 7"/></svg>}
+                        </span>
+                        <span className="text-sm font-medium truncate" style={{ color: tc }}>#{tag}</span>
+                      </button>
+                      <label className="relative cursor-pointer shrink-0" title={`Change color for #${tag}`}>
+                        <span
+                          className="w-3.5 h-3.5 rounded-full block ring-1 ring-black/10 hover:scale-110 transition-transform"
+                          style={{ backgroundColor: tc }}
+                        />
+                        <input type="color" value={tc} className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                          onChange={e => saveTagColor(tag, e.target.value)} />
+                      </label>
+                    </div>
                   );
                 })
             }
@@ -258,19 +262,19 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
   const [showForm,       setShowForm]       = useState(false);
   const [editId,         setEditId]         = useState(null);
   const [form,           setForm]           = useState(BLANK);
-  const [categoryColors, setCategoryColors] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(`categoryColors_${username}`) || '{}'); } catch { return {}; }
+  const [tagColors, setTagColors] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`tagColors_${username}`) || '{}'); } catch { return {}; }
   });
   const [animateVersion, setAnimateVersion]   = useState(0);
   const sidePanelEventsRef                    = useRef(null);
   const touchStartX                           = useRef(null);
   const touchStartY                           = useRef(null);
 
-  function getCategoryColor(cat) { return categoryColors[cat] || hashColor(cat); }
-  function saveCategoryColor(cat, color) {
-    const next = { ...categoryColors, [cat]: color };
-    setCategoryColors(next);
-    try { localStorage.setItem(`categoryColors_${username}`, JSON.stringify(next)); } catch {}
+  function getTagColor(tag) { return tagColors[tag] || hashColor(tag); }
+  function saveTagColor(tag, color) {
+    const next = { ...tagColors, [tag]: color };
+    setTagColors(next);
+    try { localStorage.setItem(`tagColors_${username}`, JSON.stringify(next)); } catch {}
   }
 
   const allCategories = [...new Set(events.map(e => e.type).filter(Boolean))].sort();
@@ -433,7 +437,8 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
   const pillBase = 'truncate text-white text-xs font-semibold px-1.5 py-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity';
 
   // Color in the form: custom override > auto from category
-  const formEffectiveColor = form.color || (form.type ? getCategoryColor(form.type) : '#6b7280');
+  const formPrimaryTag     = form.tags.split(',').map(t => t.trim()).filter(Boolean)[0] || '';
+  const formEffectiveColor = form.color || (formPrimaryTag ? getTagColor(formPrimaryTag) : '#6b7280');
 
   const selectedDateStr = selectedDay ? toDateStr(year, month, selectedDay) : null;
   const selectedEvents  = selectedDateStr ? filtered(events.filter(e => e.date === selectedDateStr)) : [];
@@ -466,12 +471,12 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
             <div className="flex items-center justify-end gap-2 px-4 pb-2">
               {allCategories.length > 0 && (
                 <CategoryDropdown allCategories={allCategories} filterTypes={filterTypes} onToggle={toggleTypeFilter}
-                  onClearAll={() => setFilterTypes([])} getCategoryColor={getCategoryColor}
-                  saveCategoryColor={saveCategoryColor} isDarkTheme={isDarkTheme} muted={muted} />
+                  onClearAll={() => setFilterTypes([])} isDarkTheme={isDarkTheme} muted={muted} />
               )}
               {allTags.length > 0 && (
                 <TagsDropdown allTags={allTags} filterTags={filterTags} onToggle={toggleTagFilter}
-                  onClearAll={() => setFilterTags([])} isDarkTheme={isDarkTheme} muted={muted} />
+                  onClearAll={() => setFilterTags([])} getTagColor={getTagColor}
+                  saveTagColor={saveTagColor} isDarkTheme={isDarkTheme} muted={muted} />
               )}
               <button onClick={() => setShowPanel(p => !p)}
                 className={`glass rounded-xl px-3 py-1.5 text-sm font-semibold shadow-sm flex items-center gap-1.5 transition-all ${
@@ -502,12 +507,12 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
             <div className="flex-1 flex items-center justify-end gap-2">
               {allCategories.length > 0 && (
                 <CategoryDropdown allCategories={allCategories} filterTypes={filterTypes} onToggle={toggleTypeFilter}
-                  onClearAll={() => setFilterTypes([])} getCategoryColor={getCategoryColor}
-                  saveCategoryColor={saveCategoryColor} isDarkTheme={isDarkTheme} muted={muted} />
+                  onClearAll={() => setFilterTypes([])} isDarkTheme={isDarkTheme} muted={muted} />
               )}
               {allTags.length > 0 && (
                 <TagsDropdown allTags={allTags} filterTags={filterTags} onToggle={toggleTagFilter}
-                  onClearAll={() => setFilterTags([])} isDarkTheme={isDarkTheme} muted={muted} />
+                  onClearAll={() => setFilterTags([])} getTagColor={getTagColor}
+                  saveTagColor={saveTagColor} isDarkTheme={isDarkTheme} muted={muted} />
               )}
               <button onClick={() => setShowPanel(p => !p)}
                 className={`glass rounded-xl px-3 py-1.5 text-sm font-semibold shadow-sm flex items-center gap-1.5 transition-all ${
@@ -580,7 +585,7 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                         <div
                           key={ev.id}
                           className={`text-white text-xs font-semibold px-2 py-1 rounded-lg flex items-center gap-1.5 transition-opacity ${ev.completed ? 'opacity-50' : ''}`}
-                          style={{ backgroundColor: eventColor(ev, categoryColors) }}
+                          style={{ backgroundColor: eventColor(ev, tagColors) }}
                         >
                           <button
                             onClick={e => { e.stopPropagation(); toggleComplete(ev.id); }}
@@ -657,7 +662,7 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                         <div
                           key={ev.id}
                           className={`text-white text-xs font-semibold px-1.5 py-0.5 rounded flex items-center gap-1.5 transition-opacity ${ev.completed ? 'opacity-50' : ''}`}
-                          style={{ backgroundColor: eventColor(ev, categoryColors) }}
+                          style={{ backgroundColor: eventColor(ev, tagColors) }}
                         >
                           <button
                             onClick={e => { e.stopPropagation(); toggleComplete(ev.id); }}
@@ -742,9 +747,9 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                     ? <p className={`text-sm ${muted}`}>No events. Click + to add.</p>
                     : <div ref={sidePanelEventsRef} className="space-y-1.5">
                         {selectedEvents.map(ev => (
-                          <EventCard key={ev.id} ev={ev} isDarkTheme={isDarkTheme} muted={muted} text={text}
+                          <EventCard key={ev.id} ev={ev} muted={muted} text={text}
                             onEdit={openEdit} onDelete={deleteEvent} onToggle={toggleComplete}
-                            getCategoryColor={getCategoryColor} />
+                            getTagColor={getTagColor} />
                         ))}
                       </div>
                   }
@@ -762,9 +767,9 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                   ? <p className={`text-sm ${muted}`}>Nothing coming up.</p>
                   : <div className="space-y-1.5">
                       {soon.map(ev => (
-                        <EventCard key={ev.id} ev={ev} isDarkTheme={isDarkTheme} muted={muted} text={text}
+                        <EventCard key={ev.id} ev={ev} muted={muted} text={text}
                           onEdit={openEdit} onDelete={deleteEvent} onToggle={toggleComplete} showDate
-                          getCategoryColor={getCategoryColor} />
+                          getTagColor={getTagColor} />
                       ))}
                     </div>
                 }
@@ -814,7 +819,7 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                 </div>
               </div>
               <div>
-                <label className={labelCls}>Tags (comma-separated)</label>
+                <label className={labelCls}>Tags (comma-separated — first tag sets the color)</label>
                 <input placeholder="e.g. Course, Career Fair, General…" value={form.tags}
                   onChange={e => setForm(p => ({ ...p, tags: e.target.value }))} className={inputCls} />
               </div>
@@ -831,9 +836,9 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
                   <span className={`text-sm flex-1 ${muted}`}>
                     {form.color
                       ? 'Custom color'
-                      : form.type
-                      ? `Auto from category "${form.type}"`
-                      : 'Pick a category to auto-assign'}
+                      : formPrimaryTag
+                      ? `Auto from tag "#${formPrimaryTag}"`
+                      : 'Add a tag to auto-assign'}
                   </span>
                   {form.color && (
                     <button type="button" onClick={() => setForm(p => ({ ...p, color: '' }))}
@@ -876,8 +881,10 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
 }
 
 // ── EventCard ────────────────────────────────────────────────────────────────
-function EventCard({ ev, isDarkTheme, muted, text, onEdit, onDelete, onToggle, showDate, getCategoryColor }) {
-  const color = ev.color || (ev.type && getCategoryColor ? getCategoryColor(ev.type) : null) || hashColor(ev.type);
+function EventCard({ ev, muted, text, onEdit, onDelete, onToggle, showDate, getTagColor }) {
+  const tagColor = getTagColor || hashColor;
+  const tag      = primaryTag(ev);
+  const color    = ev.color || (tag ? tagColor(tag) : '#6b7280');
   return (
     <div data-event-card className={`flex items-start gap-1.5 group ${ev.completed ? 'opacity-50' : ''}`}>
       <button
@@ -904,14 +911,19 @@ function EventCard({ ev, isDarkTheme, muted, text, onEdit, onDelete, onToggle, s
         <div className="flex items-center gap-1 mt-0.5 flex-wrap">
           {showDate && <span className={`text-xs ${muted}`}>{formatDate(ev.date)}</span>}
           {ev.time   && <span className={`text-xs font-mono ${muted}`}>{ev.time.slice(0, 5)}</span>}
-          {ev.type   && <span className="text-xs font-semibold" style={{ color }}>{ev.type}</span>}
-          {(ev.tags || []).map(tag => (
-            <span key={tag} className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-              isDarkTheme ? 'bg-white/10 text-gray-400' : 'bg-black/8 text-gray-500'
-            }`}>
-              #{tag}
-            </span>
-          ))}
+          {ev.type   && <span className={`text-xs font-semibold ${muted}`}>{ev.type}</span>}
+          {(ev.tags || []).map(t => {
+            const tc = tagColor(t);
+            return (
+              <span
+                key={t}
+                className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                style={{ color: tc, backgroundColor: `${tc}22` }}
+              >
+                #{t}
+              </span>
+            );
+          })}
         </div>
         {ev.notes && <p className={`text-xs mt-0.5 ${muted} truncate`}>{ev.notes}</p>}
       </div>

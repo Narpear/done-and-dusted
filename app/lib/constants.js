@@ -275,6 +275,11 @@ export const PRIORITY_STYLES = {
   },
 };
 
+// The one list every user always has. It can't be renamed or deleted, and it's
+// the only list that shows upcoming calendar deadlines.
+export const DEFAULT_LIST_ID = 'default';
+export const DEFAULT_LIST_NAME = 'My Tasks';
+
 export const KEYBOARD_SHORTCUTS = [
   { keys: ['N'], description: 'Focus new task input' },
   { keys: ['/'], description: 'Focus search' },

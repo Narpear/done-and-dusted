@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import RoomSection from './RoomSection';
+import { DEFAULT_LIST_ID } from '../lib/constants';
 
 export default function Sidebar({
   lists,
@@ -71,6 +72,7 @@ export default function Sidebar({
           const totalCount = list.todos.length;
           const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
           const isConfirming = confirmDeleteId === list.id;
+          const isDefaultList = list.id === DEFAULT_LIST_ID;
 
           return (
             <div
@@ -142,19 +144,21 @@ export default function Sidebar({
                   </button>
 
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setEditingId(list.id); setEditName(list.name); }}
-                      className={`p-1.5 rounded-lg transition-colors ${
-                        isActive ? 'text-white hover:bg-white/20' : isDarkTheme ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-200'
-                      }`}
-                      title="Rename list"
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
-                    </button>
-                    {lists.length > 1 && (
+                    {!isDefaultList && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setEditingId(list.id); setEditName(list.name); }}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          isActive ? 'text-white hover:bg-white/20' : isDarkTheme ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-200'
+                        }`}
+                        title="Rename list"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </button>
+                    )}
+                    {!isDefaultList && lists.length > 1 && (
                       <button
                         onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(list.id); }}
                         className={`p-1.5 rounded-lg transition-colors ${
