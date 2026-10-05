@@ -8,12 +8,23 @@ const DAYS   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January','February','March','April','May','June',
                 'July','August','September','October','November','December'];
 
-const PALETTE = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f59e0b','#6366f1'];
+// HSL → hex (the <input type="color"> pickers need hex)
+function hslToHex(h, s, l) {
+  s /= 100; l /= 100;
+  const k = n => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => Math.round(255 * (l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1))))
+    .toString(16).padStart(2, '0');
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+// Tags without a saved colour get a hue derived from their name — effectively
+// random, but stable so a tag keeps its colour across reloads.
 function hashColor(str) {
   if (!str) return '#6b7280';
   let h = 0;
   for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) & 0xffffffff;
-  return PALETTE[Math.abs(h) % PALETTE.length];
+  // 85% saturation / 68% lightness: soft-but-vivid (lilacs, corals, light teals)
+  return hslToHex(Math.abs(h) % 360, 85, 68);
 }
 // An event's colour comes from its first tag (an explicit per-event colour
 // still wins). Events with no tags fall back to neutral grey.
