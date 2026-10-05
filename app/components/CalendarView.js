@@ -262,9 +262,12 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
   const [showForm,       setShowForm]       = useState(false);
   const [editId,         setEditId]         = useState(null);
   const [form,           setForm]           = useState(BLANK);
-  const [tagColors, setTagColors] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(`tagColors_${username}`) || '{}'); } catch { return {}; }
-  });
+  const [tagColors, setTagColors] = useState({});
+  // Load after mount / once username is known — username is null on first render after refresh
+  useEffect(() => {
+    if (!username) return;
+    try { setTagColors(JSON.parse(localStorage.getItem(`tagColors_${username}`) || '{}')); } catch { setTagColors({}); }
+  }, [username]);
   const [animateVersion, setAnimateVersion]   = useState(0);
   const sidePanelEventsRef                    = useRef(null);
   const touchStartX                           = useRef(null);
@@ -274,7 +277,9 @@ export default function CalendarView({ username, isDarkTheme, isImageTheme, curr
   function saveTagColor(tag, color) {
     const next = { ...tagColors, [tag]: color };
     setTagColors(next);
-    try { localStorage.setItem(`tagColors_${username}`, JSON.stringify(next)); } catch {}
+    if (username) {
+      try { localStorage.setItem(`tagColors_${username}`, JSON.stringify(next)); } catch {}
+    }
   }
 
   const allCategories = [...new Set(events.map(e => e.type).filter(Boolean))].sort();
